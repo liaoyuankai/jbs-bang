@@ -1,7 +1,14 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import type { DatabaseSync } from "node:sqlite";
 import { openDb } from "@/lib/db";
-import { findOrCreateSubject, getSubject, listCities, searchSubjects, updateSubject } from "@/lib/repo/subjects";
+import {
+  findOrCreateSubject,
+  getSubject,
+  listCities,
+  searchSubjects,
+  subjectIsPublic,
+  updateSubject,
+} from "@/lib/repo/subjects";
 import {
   createEntry,
   getEntry,
@@ -67,6 +74,51 @@ describe("subjects", () => {
     findOrCreateSubject(db, { type: "shop", name: "某店", city: "咸阳" });
     expect(listCities(db).sort()).toEqual(["咸阳", "西安"]);
   });
+
+  it("scrubs contact info and caps length in subject fields", () => {
+    const s = findOrCreateSubject(db, {
+      type: "dm",
+      name: "骗子张三 vx abc_12345 电话13812345678",
+      city: "西安".repeat(30),
+      shopName: "某店 微信：hstl05302",
+    });
+    expect(s.name).toContain(PII_MASK);
+    expect(s.name).not.toContain("abc_12345");
+    expect(s.name).not.toContain("13812345678");
+    expect([...s.name].length).toBeLessThanOrEqual(40);
+    expect([...s.city].length).toBeLessThanOrEqual(20);
+    expect(s.shopName).toContain(PII_MASK);
+    const edited = updateSubject(db, s.id, { aliases: ["小号 qq 123456789"] });
+    expect(edited.aliases[0]).toContain(PII_MASK);
+  });
+
+  it("hides subjects without published content from public search until something is published", () => {
+    const s = shop();
+    expect(searchSubjects(db, "甲店", { publicOnly: true })).toHaveLength(0);
+    expect(subjectIsPublic(db, s.id)).toBe(false);
+    const e = black(s.id, "v1");
+    expect(searchSubjects(db, "甲店", { publicOnly: true })).toHaveLength(0);
+    setEntryStatus(db, e.id, "published");
+    expect(searchSubjects(db, "甲店", { publicOnly: true }).map((x) => x.id)).toEqual([s.id]);
+    expect(subjectIsPublic(db, s.id)).toBe(true);
+  });
+
+  it("treats a published response as public content too", () => {
+    const s = shop();
+    const r = createComment(db, { subjectId: s.id, kind: "response", body: "我们是店家，回应如下。", vid: "v9", ipHash: "ip" });
+    expect(subjectIsPublic(db, s.id)).toBe(false);
+    setCommentStatus(db, r.id, "published");
+    expect(subjectIsPublic(db, s.id)).toBe(true);
+  });
+
+  it("lists only cities that have published content when asked", () => {
+    const s = shop();
+    findOrCreateSubject(db, { type: "shop", name: "某店", city: "咸阳" });
+    expect(listCities(db, { publicOnly: true })).toEqual([]);
+    const e = black(s.id, "v1");
+    setEntryStatus(db, e.id, "published");
+    expect(listCities(db, { publicOnly: true })).toEqual(["西安"]);
+  });
 });
 
 describe("entries", () => {
@@ -117,6 +169,10 @@ describe("entries", () => {
     expect(after.removedReason).toBe("当事人申诉成立");
     expect(after.removedAt).toBeTruthy();
     expect(listEntries(db, { city: "西安" })).toHaveLength(0);
+  });
+
+  it("refuses to verify an entry that does not exist", () => {
+    expect(() => setVerified(db, "0000000000000000", true)).toThrow(/条目不存在/);
   });
 
   it("edits a body with scrubbing and records evidence count and verification", () => {

@@ -14,7 +14,7 @@ export default async function SubmitPage({
   const sp = await searchParams;
   const db = getDb();
   const city = await getCurrentCity();
-  const cities = Array.from(new Set([config.defaultCity, ...listCities(db)]));
+  const cities = Array.from(new Set([config.defaultCity, ...listCities(db, { publicOnly: true })]));
   let initialSubject: SubjectOption | null = null;
   if (sp.subject) {
     const s = getSubject(db, sp.subject);

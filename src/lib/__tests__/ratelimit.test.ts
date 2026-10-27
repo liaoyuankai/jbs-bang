@@ -30,6 +30,14 @@ describe("checkRate", () => {
     expect(checkRate(db, "ipA", "comment", t0 + 10)).toBe(false);
   });
 
+  it("allows ten login attempts per hour and refuses the eleventh", () => {
+    const db = openDb(":memory:");
+    const t0 = 1_700_000_000_000;
+    expect(RATE_LIMITS.login).toBe(10);
+    for (let i = 0; i < 10; i++) expect(checkRate(db, "ipA", "login", t0 + i)).toBe(true);
+    expect(checkRate(db, "ipA", "login", t0 + 10)).toBe(false);
+  });
+
   it("does not record a refused attempt", () => {
     const db = openDb(":memory:");
     const t0 = 1_700_000_000_000;

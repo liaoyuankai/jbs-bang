@@ -108,6 +108,23 @@ describe("createEntryAction", () => {
     expect(listPending(getDb())).toHaveLength(3);
   });
 
+  it("scrubs contact info out of a new subject name before it can be shown anywhere", async () => {
+    const r = await submit(form({ name: "骗子张三 vx abc_12345" }));
+    expect(r.kind).toBe("redirect");
+    const e = listPending(getDb())[0];
+    expect(e.subject.name).toContain(PII_MASK);
+    expect(e.subject.name).not.toContain("abc_12345");
+  });
+
+  it("creates no subject and burns no rate slot when the category is wrong", async () => {
+    const r = await submit(form({ name: "不该出现的店", category: "开本摆烂" }));
+    expect(r.kind).toBe("state");
+    if (r.kind === "state") expect(r.res.error).toMatch(/分类/);
+    const db = getDb();
+    expect(db.prepare("SELECT COUNT(*) AS n FROM subjects").get()).toMatchObject({ n: 0 });
+    expect(db.prepare("SELECT COUNT(*) AS n FROM rate_events").get()).toMatchObject({ n: 0 });
+  });
+
   it("attaches to an existing subject when subjectId is given", async () => {
     await submit(form({ name: "老店" }));
     const first = listPending(getDb())[0];

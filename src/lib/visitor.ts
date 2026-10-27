@@ -24,6 +24,7 @@ export async function getOrSetVid(): Promise<string> {
   const fresh = randomBytes(16).toString("hex");
   store.set(VID_COOKIE, fresh, {
     httpOnly: true,
+    secure: config.isProduction,
     sameSite: "lax",
     path: "/",
     maxAge: VID_MAX_AGE,

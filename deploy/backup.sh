@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # 每日备份：数据库快照 + 证据图打包，保留 14 天；设置 BACKUP_REMOTE 时再同步到异地（rclone）。
 # crontab 示例（每天 04:00）：
-#   0 4 * * * cd /opt/jbs-bang && bash deploy/backup.sh >> data/backups/backup.log 2>&1
+#   0 4 * * * cd /opt/jbs-bang && mkdir -p data/backups && bash deploy/backup.sh >> data/backups/backup.log 2>&1
 set -euo pipefail
 cd "$(dirname "$0")/.."
 mkdir -p data/backups

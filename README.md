@@ -10,11 +10,12 @@
 前提：一台海外 VPS（Debian/Ubuntu，1 核 1G 起），一个域名，域名的 A 记录已指向 VPS 的 IP。
 
 ```bash
-# 1. 把项目传到服务器（在本机执行；把 user@IP 换成你的）
-scp -r ./jbs-bang user@IP:/opt/jbs-bang
+# 1. 把项目传到服务器（在本机执行；把 root@IP 换成你的。排除 node_modules/.next/.git，只传源码和 data）
+rsync -a --exclude node_modules --exclude .next --exclude .git ./jbs-bang/ root@IP:/opt/jbs-bang/
+#    没有 rsync 的话：先删掉本机 jbs-bang/node_modules 和 jbs-bang/.next，再 scp -r ./jbs-bang root@IP:/opt/jbs-bang
 
-# 2. 登录服务器，第一次运行会装 Docker 并生成 .env
-ssh user@IP
+# 2. 登录服务器（需要 root 或 sudo），第一次运行会装 Docker 并生成 .env
+ssh root@IP
 cd /opt/jbs-bang
 bash deploy/deploy.sh
 
@@ -36,9 +37,9 @@ bash deploy/deploy.sh
 | 看日志 | `docker compose logs -f app` |
 | 改代码后重新部署 | `bash deploy/deploy.sh` |
 | 手动备份 | `bash deploy/backup.sh` |
-| 每日自动备份 | `crontab -e` 加一行：`0 4 * * * cd /opt/jbs-bang && bash deploy/backup.sh >> data/backups/backup.log 2>&1` |
+| 每日自动备份 | `crontab -e` 加一行：`0 4 * * * cd /opt/jbs-bang && mkdir -p data/backups && bash deploy/backup.sh >> data/backups/backup.log 2>&1` |
 | 异地备份 | 装 `rclone`，配好远端，然后 `BACKUP_REMOTE=远端名:桶名 bash deploy/backup.sh` |
-| 恢复 | `docker compose stop app && cp data/backups/app-某日期.db data/app.db && docker compose start app` |
+| 恢复 | `docker compose stop app && rm -f data/app.db-wal data/app.db-shm && cp data/backups/app-某日期.db data/app.db && docker compose start app`（先删 wal/shm，否则旧日志会覆盖恢复的数据） |
 
 ## 三、审核
 

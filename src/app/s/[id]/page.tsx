@@ -8,9 +8,10 @@ import { confidenceLabel } from "@/lib/labels";
 import { listComments } from "@/lib/repo/comments";
 import { endorseCounts } from "@/lib/repo/endorsements";
 import { listEntries } from "@/lib/repo/entries";
-import { getSubject } from "@/lib/repo/subjects";
+import { getSubject, subjectIsPublic } from "@/lib/repo/subjects";
 import type { ListKind } from "@/lib/taxonomy";
 import { ResponseForm } from "@/components/CommentForm";
+import { isAdmin } from "@/lib/admin-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +27,8 @@ export default async function SubjectPage({
   const db = getDb();
   const subject = getSubject(db, id);
   if (!subject) notFound();
+  // a subject with nothing published yet is only visible to the admin, so unreviewed names never leak
+  if (!subjectIsPublic(db, id) && !(await isAdmin())) notFound();
 
   const red = listEntries(db, { subjectId: id, list: "red", limit: 200 });
   const black = listEntries(db, { subjectId: id, list: "black", limit: 200 });

@@ -157,6 +157,7 @@ export function setEntryStatus(
 }
 
 export function setVerified(db: DatabaseSync, id: string, verified: boolean): Entry {
+  if (!getEntry(db, id)) throw new Error("条目不存在");
   db.prepare("UPDATE entries SET verified = ? WHERE id = ?").run(verified ? 1 : 0, id);
   appendEvent(db, verified ? "entry.verified" : "entry.unverified", id, {});
   return getEntry(db, id)!;

@@ -26,7 +26,7 @@ if [ -z "$domain" ] || [ "$domain" = "example.com" ] || [ -z "$pw" ] || [ "$pw" 
   exit 1
 fi
 
-mkdir -p data
+mkdir -p data/backups data/uploads
 docker compose up -d --build
 docker compose ps
 echo

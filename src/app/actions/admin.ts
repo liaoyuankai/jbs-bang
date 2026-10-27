@@ -8,9 +8,11 @@ import { errorMessage, type ActionState } from "@/lib/action-state";
 import { ADMIN_COOKIE, ADMIN_SESSION_MS, requireAdmin, signAdmin } from "@/lib/admin-auth";
 import { config } from "@/lib/config";
 import { getDb } from "@/lib/db";
+import { checkRate, RATE_MESSAGES } from "@/lib/ratelimit";
 import { setCommentStatus } from "@/lib/repo/comments";
 import { getEntry, setEntryStatus, setVerified, updateEntryBody } from "@/lib/repo/entries";
 import { updateSubject } from "@/lib/repo/subjects";
+import { getClientIp, ipHash } from "@/lib/visitor";
 
 function str(fd: FormData, key: string): string {
   const v = fd.get(key);
@@ -26,11 +28,18 @@ function safeEqual(a: string, b: string): boolean {
 export async function loginAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const expected = config.adminPassword;
   if (!expected) return { error: "未配置 ADMIN_PASSWORD，请在 .env 中设置后重启" };
+  const secretProblem = config.sessionSecretProblem;
+  if (secretProblem) return { error: `${secretProblem}，请在 .env 中设置后重启` };
+
+  const ip = ipHash(await getClientIp());
+  if (!checkRate(getDb(), ip, "login")) return { error: RATE_MESSAGES.login };
+
   const given = str(formData, "password");
   if (!given || !safeEqual(given, expected)) return { error: "口令错误" };
   const store = await cookies();
   store.set(ADMIN_COOKIE, signAdmin(config.sessionSecret, Date.now() + ADMIN_SESSION_MS), {
     httpOnly: true,
+    secure: config.isProduction,
     sameSite: "lax",
     path: "/",
     maxAge: ADMIN_SESSION_MS / 1000,
@@ -45,13 +54,14 @@ export async function logoutAction(): Promise<void> {
 }
 
 function back(returnTo: string, msg?: string): never {
-  const base = returnTo.startsWith("/admin") ? returnTo : "/admin";
+  const base = returnTo.startsWith("/admin") && !returnTo.startsWith("//") ? returnTo : "/admin";
   const sep = base.includes("?") ? "&" : "?";
   redirect(msg ? `${base}${sep}msg=${encodeURIComponent(msg)}` : base);
 }
 
 function revalidateEntry(id: string, subjectId: string) {
   revalidatePath("/");
+  revalidatePath("/search");
   revalidatePath(`/e/${id}`);
   revalidatePath(`/s/${subjectId}`);
   revalidatePath("/transparency");
@@ -72,11 +82,16 @@ export async function moderateEntryAction(formData: FormData): Promise<void> {
     const cur = getEntry(db, id);
     if (!cur) throw new Error("条目不存在");
     if (decision === "approve") {
+      if (cur.status !== "pending" && cur.status !== "rejected") {
+        throw new Error("只有待审或已驳回的条目可以通过；已下架的条目保留墓碑，不能重新公开");
+      }
       if (body && body !== cur.body) updateEntryBody(db, id, body);
       setEntryStatus(db, id, "published");
     } else if (decision === "reject") {
+      if (cur.status !== "pending") throw new Error("只有待审条目可以驳回");
       setEntryStatus(db, id, "rejected");
     } else if (decision === "remove") {
+      if (cur.status !== "published") throw new Error("只有已公开条目可以下架");
       setEntryStatus(db, id, "removed", { reason });
     } else {
       throw new Error("未知操作");
@@ -101,6 +116,7 @@ export async function moderateCommentAction(formData: FormData): Promise<void> {
     if (!status) throw new Error("未知操作");
     const c = setCommentStatus(db, id, status, { reason });
     revalidatePath("/admin");
+    revalidatePath("/search");
     revalidatePath(`/s/${c.subjectId}`);
     if (c.entryId) revalidatePath(`/e/${c.entryId}`);
   } catch (e) {
@@ -144,6 +160,7 @@ export async function updateSubjectAction(formData: FormData): Promise<void> {
     });
     revalidatePath(`/s/${id}`);
     revalidatePath("/");
+    revalidatePath("/search");
     revalidatePath("/admin/subjects");
   } catch (e) {
     msg = errorMessage(e);

@@ -32,6 +32,7 @@ export function SubmitForm({
   const [results, setResults] = useState<SubjectOption[]>([]);
   const [creating, setCreating] = useState(false);
   const [body, setBody] = useState("");
+  const [fileError, setFileError] = useState<string | null>(null);
 
   useEffect(() => {
     if (selected || creating || query.trim().length === 0) {
@@ -215,8 +216,22 @@ export function SubmitForm({
 
       <fieldset>
         <legend className="text-sm font-semibold">4. 证据（可不填）</legend>
-        <input type="file" name="evidence" accept="image/*" multiple className="mt-2 block text-sm" />
+        <input
+          type="file"
+          name="evidence"
+          accept="image/*"
+          multiple
+          className="mt-2 block text-sm"
+          onChange={(e) => {
+            const files = Array.from(e.target.files ?? []);
+            if (files.length > 5) setFileError("最多 5 张证据图");
+            else if (files.some((f) => f.size > 5 * 1024 * 1024)) setFileError("每张证据图不超过 5 MB，请先压缩");
+            else if (files.some((f) => !f.type.startsWith("image/"))) setFileError("证据必须是图片");
+            else setFileError(null);
+          }}
+        />
         <p className="mt-1 text-xs text-stone-500">最多 5 张，每张 5 MB 以内。只有审核能看到，不会公开。</p>
+        {fileError && <p className="mt-1 text-sm text-red-700">{fileError}</p>}
       </fieldset>
 
       <fieldset>
@@ -233,7 +248,7 @@ export function SubmitForm({
 
       <button
         type="submit"
-        disabled={pending || (!selected && !creating)}
+        disabled={pending || !!fileError || (!selected && !creating)}
         className="w-full rounded bg-stone-900 px-4 py-3 text-white disabled:opacity-40"
       >
         {pending ? "提交中…" : "提交，等待审核"}

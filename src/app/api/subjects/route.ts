@@ -15,6 +15,7 @@ export function GET(request: Request) {
     type: isSubjectType(type) ? type : undefined,
     city,
     limit: 10,
+    publicOnly: true,
   }).map((s) => ({ id: s.id, type: s.type, name: s.name, city: s.city, shopName: s.shopName }));
   return NextResponse.json(results);
 }

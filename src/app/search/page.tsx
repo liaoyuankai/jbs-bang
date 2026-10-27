@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 export default async function SearchPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   const { q = "" } = await searchParams;
   const query = q.trim().slice(0, 50);
-  const results = query ? searchSubjects(getDb(), query, { limit: 50 }) : [];
+  const results = query ? searchSubjects(getDb(), query, { limit: 50, publicOnly: true }) : [];
 
   return (
     <div className="space-y-4">

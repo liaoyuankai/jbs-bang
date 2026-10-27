@@ -24,7 +24,7 @@ export default async function Home({
   const page = Math.max(1, Number(sp.page) || 1);
   const city = await getCurrentCity();
   const db = getDb();
-  const cities = Array.from(new Set([config.defaultCity, ...listCities(db)]));
+  const cities = Array.from(new Set([config.defaultCity, ...listCities(db, { publicOnly: true })]));
   const entries = listEntries(db, { city, list, limit: PAGE_SIZE + 1, offset: (page - 1) * PAGE_SIZE });
   const hasMore = entries.length > PAGE_SIZE;
   const shown = entries.slice(0, PAGE_SIZE);

@@ -4,11 +4,13 @@ import path from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const jar = new Map<string, string>();
+const setOptions = new Map<string, Record<string, unknown>>();
 vi.mock("next/headers", () => ({
   cookies: async () => ({
     get: (k: string) => (jar.has(k) ? { name: k, value: jar.get(k)! } : undefined),
-    set: (k: string, v: string) => {
+    set: (k: string, v: string, opts?: Record<string, unknown>) => {
       jar.set(k, v);
+      setOptions.set(k, opts ?? {});
     },
     delete: (k: string) => {
       jar.delete(k);
@@ -103,6 +105,45 @@ describe("loginAction", () => {
     expect(r).toEqual({ kind: "redirect", to: "/admin/login" });
     expect(jar.has("admin")).toBe(false);
   });
+
+  it("refuses to log in on a production build with a placeholder or short SESSION_SECRET", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    try {
+      vi.stubEnv("SESSION_SECRET", "change-me-too");
+      let r = await call(() => loginAction({}, fd({ password: "hunter2" })));
+      expect(r.kind).toBe("state");
+      if (r.kind === "state") expect(r.res.error).toMatch(/SESSION_SECRET/);
+      vi.stubEnv("SESSION_SECRET", "short");
+      r = await call(() => loginAction({}, fd({ password: "hunter2" })));
+      expect(r.kind).toBe("state");
+      if (r.kind === "state") expect(r.res.error).toMatch(/SESSION_SECRET/);
+      expect(jar.has("admin")).toBe(false);
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
+  it("sets the admin cookie with secure on a production build", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("SESSION_SECRET", "a-long-enough-production-secret-0123456789");
+    try {
+      await call(() => loginAction({}, fd({ password: "hunter2" })));
+      expect(setOptions.get("admin")).toMatchObject({ httpOnly: true, secure: true });
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
+  it("rate limits password guesses per ip", async () => {
+    for (let i = 0; i < 10; i++) {
+      const r = await call(() => loginAction({}, fd({ password: `wrong${i}` })));
+      expect(r.kind).toBe("state");
+    }
+    const r = await call(() => loginAction({}, fd({ password: "hunter2" })));
+    expect(r.kind).toBe("state");
+    if (r.kind === "state") expect(r.res.error).toMatch(/频繁|稍后/);
+    expect(jar.has("admin")).toBe(false);
+  });
 });
 
 describe("moderateEntryAction", () => {
@@ -138,6 +179,19 @@ describe("moderateEntryAction", () => {
     if (r.kind === "redirect") expect(r.to).toContain("msg=");
     expect(getEntry(getDb(), e.id)!.status).toBe("published");
     await call(() => moderateEntryAction(fd({ id: e.id, decision: "remove", reason: "当事人申诉成立" })));
+    const after = getEntry(getDb(), e.id)!;
+    expect(after.status).toBe("removed");
+    expect(after.removedReason).toBe("当事人申诉成立");
+  });
+
+  it("refuses to re-publish a removed entry so the tombstone stays", async () => {
+    loginAsAdmin();
+    const { e } = seedPendingEntry();
+    await call(() => moderateEntryAction(fd({ id: e.id, decision: "approve" })));
+    await call(() => moderateEntryAction(fd({ id: e.id, decision: "remove", reason: "当事人申诉成立" })));
+    const r = await call(() => moderateEntryAction(fd({ id: e.id, decision: "approve" })));
+    expect(r.kind).toBe("redirect");
+    if (r.kind === "redirect") expect(r.to).toContain("msg=");
     const after = getEntry(getDb(), e.id)!;
     expect(after.status).toBe("removed");
     expect(after.removedReason).toBe("当事人申诉成立");
