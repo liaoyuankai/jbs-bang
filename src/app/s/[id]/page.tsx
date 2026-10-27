@@ -10,6 +10,7 @@ import { endorseCounts } from "@/lib/repo/endorsements";
 import { listEntries } from "@/lib/repo/entries";
 import { getSubject } from "@/lib/repo/subjects";
 import type { ListKind } from "@/lib/taxonomy";
+import { ResponseForm } from "@/components/CommentForm";
 
 export const dynamic = "force-dynamic";
 
@@ -89,7 +90,7 @@ export default async function SubjectPage({
         <p className="mt-1 text-sm text-stone-500">
           回应审核通过后会置顶显示在本页，与投稿并列，不会覆盖投稿。请只写事实经过，不要写联系方式。
         </p>
-        {/* 回应表单在下一任务接入 */}
+        <ResponseForm subjectId={id} />
       </section>
     </div>
   );

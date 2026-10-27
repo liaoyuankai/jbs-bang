@@ -1,14 +1,16 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { CommentForm } from "@/components/CommentForm";
+import { EndorseButton } from "@/components/EndorseButton";
 import { Label, ListBadge, TypeBadge } from "@/components/Label";
 import { isAdmin } from "@/lib/admin-auth";
 import { getDb } from "@/lib/db";
 import { fmtDate } from "@/lib/format";
 import { confidenceLabel } from "@/lib/labels";
 import { listComments } from "@/lib/repo/comments";
-import { endorseCount } from "@/lib/repo/endorsements";
+import { endorseCount, hasEndorsed } from "@/lib/repo/endorsements";
 import { getEntryWithSubject } from "@/lib/repo/entries";
-import { shortVid } from "@/lib/visitor";
+import { readVid, shortVid } from "@/lib/visitor";
 
 export const dynamic = "force-dynamic";
 
@@ -22,6 +24,8 @@ export default async function EntryPage({ params }: { params: Promise<{ id: stri
   const s = entry.subject;
   const label = confidenceLabel(db, entry);
   const count = endorseCount(db, id);
+  const vid = await readVid();
+  const done = vid ? hasEndorsed(db, id, vid) : false;
   const comments = listComments(db, { entryId: id, kind: "comment" });
 
   return (
@@ -61,8 +65,8 @@ export default async function EntryPage({ params }: { params: Promise<{ id: stri
               <span>{fmtDate(entry.createdAt)}</span>
               {entry.evidenceCount > 0 && <span>附证据 {entry.evidenceCount} 张，审核已查看，不公开</span>}
             </div>
-            <div className="mt-3 text-sm text-stone-700">
-              {entry.list === "black" ? "我也遇到过" : "点了"} {count}
+            <div className="mt-3">
+              <EndorseButton entryId={id} list={entry.list} count={count} done={done} />
             </div>
           </article>
 
@@ -82,6 +86,7 @@ export default async function EntryPage({ params }: { params: Promise<{ id: stri
                 ))}
               </ul>
             )}
+            {entry.status === "published" && <CommentForm entryId={id} />}
           </section>
         </>
       )}
