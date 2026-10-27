@@ -14,6 +14,8 @@ describe("scrubPII", () => {
     ["qq chinese label", "扣扣 123456789 联系"],
     ["qq label", "QQ123456789 联系"],
     ["id card", "身份证 110101199001011234 的那位"],
+    ["unlabeled alphanumeric handle", "hstl05302，客服号在这，快去玩！"],
+    ["handle after 号", "客服号 Im13800138000 快去"],
   ];
 
   for (const [name, input] of cases) {
@@ -23,8 +25,14 @@ describe("scrubPII", () => {
       expect(out).not.toMatch(/\d{7,}/);
       expect(out).not.toContain("abc_123");
       expect(out).not.toContain("Im13800138000");
+      expect(out).not.toContain("hstl05302");
     });
   }
+
+  it("keeps short alphanumeric tokens that are not handles", () => {
+    const text = "F4夯爆了，COC7人本，拼了3车，DM开本2小时";
+    expect(scrubPII(text)).toBe(text);
+  });
 
   it("leaves ordinary complaint text untouched", () => {
     const text = "客服态度很差，换了两次DM，优惠券也不认，2024年3月的事";

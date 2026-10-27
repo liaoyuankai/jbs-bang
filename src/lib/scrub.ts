@@ -6,6 +6,8 @@ const MOBILE = /1[3-9]\d[\s-]*\d{4}[\s-]*\d{4}/g;
 // 微信 / vx / wx / weixin / wechat / 扣扣 / qq followed by a handle
 const LABELED_HANDLE =
   /(微\s*信|v\s*x|w\s*x|weixin|wechat|扣\s*扣|q\s*q)\s*(?:号|是|：|:|\s)*([A-Za-z0-9_-]{5,20})/gi;
+// an unlabeled token that looks like an account id: starts with a letter, 6-20 chars, at least 3 digits
+const BARE_HANDLE = /(?<![A-Za-z0-9_])[A-Za-z][A-Za-z0-9_-]{5,19}(?![A-Za-z0-9_])/g;
 // any remaining run of 7+ digits is a phone/QQ number, never a price or a date
 const LONG_DIGITS = /\d{7,}/g;
 
@@ -15,6 +17,7 @@ export function scrubPII(text: string): string {
     .replace(ID_CARD, PII_MASK)
     .replace(MOBILE, PII_MASK)
     .replace(LABELED_HANDLE, (_m, label: string) => `${label.replace(/\s+/g, "")}${PII_MASK}`)
+    .replace(BARE_HANDLE, (m) => ((m.match(/\d/g) ?? []).length >= 3 ? PII_MASK : m))
     .replace(LONG_DIGITS, PII_MASK);
 }
 
