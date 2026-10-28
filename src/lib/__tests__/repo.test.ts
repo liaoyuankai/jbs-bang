@@ -13,6 +13,7 @@ import {
   countEntriesByType,
   createEntry,
   getEntry,
+  hasRecentEntry,
   listEntries,
   setEntryStatus,
   setEvidenceCount,
@@ -209,6 +210,26 @@ describe("entries", () => {
     expect(after.body).toContain(PII_MASK);
     expect(after.evidenceCount).toBe(2);
     expect(after.verified).toBe(true);
+  });
+});
+
+describe("hasRecentEntry", () => {
+  it("matches the same ip or cookie on the same subject and list within 30 days", () => {
+    const s = shop();
+    black(s.id, "v1");
+    const at = Date.now();
+    expect(hasRecentEntry(db, { subjectId: s.id, list: "black", vid: "v1", ipHash: "elsewhere" }, at)).toBe(true);
+    expect(hasRecentEntry(db, { subjectId: s.id, list: "black", vid: "v2", ipHash: "ip1" }, at)).toBe(true);
+    expect(hasRecentEntry(db, { subjectId: s.id, list: "black", vid: "v2", ipHash: "ip2" }, at)).toBe(false);
+    expect(hasRecentEntry(db, { subjectId: s.id, list: "red", vid: "v1", ipHash: "ip1" }, at)).toBe(false);
+    expect(hasRecentEntry(db, { subjectId: s.id, list: "black", vid: "v1", ipHash: "ip1" }, at + 31 * 86_400_000)).toBe(false);
+  });
+
+  it("ignores entries the admin took down", () => {
+    const s = shop();
+    const e = black(s.id, "v1");
+    setEntryStatus(db, e.id, "removed", { reason: "测试" });
+    expect(hasRecentEntry(db, { subjectId: s.id, list: "black", vid: "v1", ipHash: "ip1" })).toBe(false);
   });
 });
 

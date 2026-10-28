@@ -136,10 +136,32 @@ describe("createEntryAction", () => {
   it("attaches to an existing subject when subjectId is given", async () => {
     await submit(form({ name: "老店" }));
     const first = listEntries(getDb())[0];
-    const r = await submit(form({ subjectId: first.subjectId, name: "", city: "" }));
+    const r = await submit(form({ subjectId: first.subjectId, name: "", city: "", list: "red", category: "服务好" }));
     expect(r.kind).toBe("redirect");
     const all = listEntries(getDb());
     expect(all).toHaveLength(2);
     expect(new Set(all.map((e) => e.subjectId)).size).toBe(1);
+  });
+
+  it("refuses a second post on the same subject and list, by id or by name, without burning a rate slot", async () => {
+    await submit(form({ name: "老店" }));
+    const first = listEntries(getDb())[0];
+    for (const fd of [form({ subjectId: first.subjectId, name: "", city: "" }), form({ name: "老店" })]) {
+      const r = await submit(fd);
+      expect(r.kind).toBe("state");
+      if (r.kind === "state") expect(r.res.error).toMatch(/30 天内已经给「老店」发过黑榜/);
+    }
+    const db = getDb();
+    expect(listEntries(db)).toHaveLength(1);
+    expect(db.prepare("SELECT COUNT(*) AS n FROM rate_events").get()).toMatchObject({ n: 1 });
+  });
+
+  it("refuses a repeat from the same cookie even on a different ip", async () => {
+    await submit(form({ name: "老店" }));
+    const db = getDb();
+    db.prepare("UPDATE entries SET ip_hash = 'another-network'").run();
+    const r = await submit(form({ name: "老店" }));
+    expect(r.kind).toBe("state");
+    expect(listEntries(db)).toHaveLength(1);
   });
 });

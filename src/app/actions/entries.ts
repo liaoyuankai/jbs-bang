@@ -5,9 +5,9 @@ import { errorMessage, type ActionState } from "@/lib/action-state";
 import { config } from "@/lib/config";
 import { getDb } from "@/lib/db";
 import { checkRate, RATE_MESSAGES } from "@/lib/ratelimit";
-import { BODY_MAX, BODY_MIN, createEntry, setEvidenceCount } from "@/lib/repo/entries";
+import { BODY_MAX, BODY_MIN, createEntry, hasRecentEntry, REPEAT_WINDOW_DAYS, setEvidenceCount } from "@/lib/repo/entries";
 import { findOrCreateSubject, getSubject } from "@/lib/repo/subjects";
-import { CATEGORIES, isListKind, isSubjectType } from "@/lib/taxonomy";
+import { CATEGORIES, isListKind, isSubjectType, listLabel } from "@/lib/taxonomy";
 import { readEvidence, writeEvidence } from "@/lib/uploads";
 import { getClientIp, getOrSetVid, ipHash } from "@/lib/visitor";
 
@@ -45,9 +45,9 @@ export async function createEntryAction(_prev: ActionState, formData: FormData):
       if (!existing) return { error: "对象不存在" };
       if (existing.type !== type) return { error: "对象类型不匹配" };
     }
-    if (!checkRate(db, ip, "entry")) return { error: RATE_MESSAGES.entry };
 
-    // 3. subject + entry in one transaction so a failure leaves nothing behind
+    // 3. subject + entry in one transaction so a failure leaves nothing behind; a refusal below throws and rolls
+    //    back, so a repeat post neither creates its subject nor uses up one of the visitor's rate slots
     db.exec("BEGIN");
     try {
       const subject = subjectId
@@ -58,6 +58,10 @@ export async function createEntryAction(_prev: ActionState, formData: FormData):
             city: str(formData, "city") || config.defaultCity,
             shopName: str(formData, "shopName") || null,
           });
+      if (hasRecentEntry(db, { subjectId: subject.id, list, vid, ipHash: ip })) {
+        throw new Error(`你在 ${REPEAT_WINDOW_DAYS} 天内已经给「${subject.name}」发过${listLabel(list)}了，同一个对象每个榜 ${REPEAT_WINDOW_DAYS} 天只能发一条`);
+      }
+      if (!checkRate(db, ip, "entry")) throw new Error(RATE_MESSAGES.entry);
       const entry = createEntry(db, { subjectId: subject.id, list, category, body, vid, ipHash: ip, occurredAt });
       const n = writeEvidence(config.dataDir, entry.id, evidence);
       if (n > 0) setEvidenceCount(db, entry.id, n);

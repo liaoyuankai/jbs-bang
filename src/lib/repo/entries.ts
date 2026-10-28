@@ -185,6 +185,29 @@ export function updateEntryBody(db: DatabaseSync, id: string, body: string, opts
   return getEntry(db, id)!;
 }
 
+export const REPEAT_WINDOW_DAYS = 30;
+
+/**
+ * True when this visitor — same ip or same cookie — already has a live or pending entry on this subject's list
+ * inside the window. Rejected and removed entries don't count, so a post the admin took down can be redone.
+ */
+export function hasRecentEntry(
+  db: DatabaseSync,
+  p: { subjectId: string; list: ListKind; vid: string; ipHash: string },
+  at: number = Date.now(),
+): boolean {
+  const since = new Date(at - REPEAT_WINDOW_DAYS * 24 * 60 * 60 * 1000).toISOString();
+  const row = db
+    .prepare(
+      `SELECT 1 FROM entries
+       WHERE subject_id = ? AND list = ? AND (ip_hash = ? OR vid = ?)
+         AND status IN ('published','pending') AND created_at > ?
+       LIMIT 1`,
+    )
+    .get(p.subjectId, p.list, p.ipHash, p.vid, since);
+  return row !== undefined;
+}
+
 export function setEvidenceCount(db: DatabaseSync, id: string, n: number): void {
   db.prepare("UPDATE entries SET evidence_count = ? WHERE id = ?").run(n, id);
 }
