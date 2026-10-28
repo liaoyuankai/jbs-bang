@@ -3,11 +3,10 @@ import { setCity } from "@/app/actions/city";
 import { Chip, ChipRow } from "@/components/Chip";
 import { CitySelect } from "@/components/CitySelect";
 import { TypeBadge } from "@/components/Label";
-import { config } from "@/lib/config";
 import { getCurrentCity } from "@/lib/current-city";
+import { cityOptions } from "@/lib/cities";
 import { getDb } from "@/lib/db";
 import { rankSubjects, rankSubjectsNet } from "@/lib/repo/rank";
-import { listCities } from "@/lib/repo/subjects";
 import { isSubjectType, SUBJECT_TYPES, typeLabel, type ListKind, type SubjectType } from "@/lib/taxonomy";
 import type { Subject } from "@/lib/types";
 
@@ -42,7 +41,7 @@ export default async function RankPage({ searchParams }: { searchParams: Promise
   const type = list === "net" ? (typeParam ?? SUBJECT_TYPES[0]) : typeParam;
   const city = await getCurrentCity();
   const db = getDb();
-  const cities = Array.from(new Set([config.defaultCity, ...listCities(db, { publicOnly: true })]));
+  const cities = cityOptions(db);
 
   const boards: { list: Board; label: string; active: string }[] = [
     { list: "black", label: "黑榜热度", active: "bg-stone-900 text-white" },

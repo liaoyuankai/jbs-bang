@@ -3,13 +3,12 @@ import { setCity } from "@/app/actions/city";
 import { Chip, ChipRow } from "@/components/Chip";
 import { CitySelect } from "@/components/CitySelect";
 import { EntryCard } from "@/components/EntryCard";
+import { cityOptions } from "@/lib/cities";
 import { getDb } from "@/lib/db";
-import { config } from "@/lib/config";
 import { getCurrentCity } from "@/lib/current-city";
 import { confidenceLabel } from "@/lib/labels";
 import { endorseCounts } from "@/lib/repo/endorsements";
 import { countEntriesByType, listEntries } from "@/lib/repo/entries";
-import { listCities } from "@/lib/repo/subjects";
 import { isSubjectType, SUBJECT_TYPES, typeLabel, type ListKind, type SubjectType } from "@/lib/taxonomy";
 
 export const dynamic = "force-dynamic";
@@ -34,7 +33,7 @@ export default async function Home({
   const page = Math.max(1, Number(sp.page) || 1);
   const city = await getCurrentCity();
   const db = getDb();
-  const cities = Array.from(new Set([config.defaultCity, ...listCities(db, { publicOnly: true })]));
+  const cities = cityOptions(db);
   const entries = listEntries(db, { city, list, type, limit: PAGE_SIZE + 1, offset: (page - 1) * PAGE_SIZE });
   const typeCounts = countEntriesByType(db, { city, list });
   const total = typeCounts.shop + typeCounts.dm + typeCounts.player;

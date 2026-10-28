@@ -1,8 +1,8 @@
 import { SubmitForm, type SubjectOption } from "@/components/SubmitForm";
-import { config } from "@/lib/config";
 import { getCurrentCity } from "@/lib/current-city";
+import { cityOptions } from "@/lib/cities";
 import { getDb } from "@/lib/db";
-import { getSubject, listCities } from "@/lib/repo/subjects";
+import { getSubject } from "@/lib/repo/subjects";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +14,7 @@ export default async function SubmitPage({
   const sp = await searchParams;
   const db = getDb();
   const city = await getCurrentCity();
-  const cities = Array.from(new Set([config.defaultCity, ...listCities(db, { publicOnly: true })]));
+  const cities = cityOptions(db);
   let initialSubject: SubjectOption | null = null;
   if (sp.subject) {
     const s = getSubject(db, sp.subject);
