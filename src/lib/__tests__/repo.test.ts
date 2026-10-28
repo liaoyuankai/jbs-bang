@@ -10,6 +10,7 @@ import {
   updateSubject,
 } from "@/lib/repo/subjects";
 import {
+  countEntriesByType,
   createEntry,
   getEntry,
   listEntries,
@@ -154,6 +155,20 @@ describe("entries", () => {
     expect(listed[0].subject.name).toBe("甲店");
     expect(listEntries(db, { city: "西安", list: "red" })).toHaveLength(0);
     expect(listEntries(db, { city: "咸阳" })).toHaveLength(0);
+  });
+
+  it("filters the public list by subject type and counts live entries per type", () => {
+    const s = shop();
+    const d = findOrCreateSubject(db, { type: "dm", name: "阿壬", city: "西安", shopName: "甲店" });
+    black(s.id, "v1");
+    createEntry(db, { subjectId: d.id, list: "black", category: "开本摆烂", body: BODY, vid: "v2", ipHash: "ip2" });
+    const other = createEntry(db, { subjectId: d.id, list: "black", category: "剧透", body: `${BODY}另一件事。`, vid: "v3", ipHash: "ip3" });
+    setEntryStatus(db, other.id, "removed", { reason: "测试" });
+    expect(listEntries(db, { city: "西安", list: "black", type: "dm" }).map((x) => x.subject.id)).toEqual([d.id]);
+    expect(listEntries(db, { city: "西安", list: "black", type: "player" })).toHaveLength(0);
+    expect(listEntries(db, { city: "西安", list: "black" })).toHaveLength(2);
+    expect(countEntriesByType(db, { city: "西安", list: "black" })).toEqual({ shop: 1, dm: 1, player: 0 });
+    expect(countEntriesByType(db, { city: "西安", list: "red" })).toEqual({ shop: 0, dm: 0, player: 0 });
   });
 
   it("keeps a removed entry on record with reason and time", () => {

@@ -7,26 +7,40 @@ import { config } from "@/lib/config";
 import { getCurrentCity } from "@/lib/current-city";
 import { confidenceLabel } from "@/lib/labels";
 import { endorseCounts } from "@/lib/repo/endorsements";
-import { listEntries } from "@/lib/repo/entries";
+import { countEntriesByType, listEntries } from "@/lib/repo/entries";
 import { listCities } from "@/lib/repo/subjects";
-import type { ListKind } from "@/lib/taxonomy";
+import { isSubjectType, SUBJECT_TYPES, typeLabel, type ListKind, type SubjectType } from "@/lib/taxonomy";
 
 export const dynamic = "force-dynamic";
 
 const PAGE_SIZE = 30;
 
+function listHref(p: { list: ListKind; type?: SubjectType; page?: number }): string {
+  const q = new URLSearchParams({ list: p.list });
+  if (p.type) q.set("type", p.type);
+  if (p.page && p.page > 1) q.set("page", String(p.page));
+  return `/?${q.toString()}`;
+}
+
+const CHIP = "whitespace-nowrap rounded-full border px-3 py-1.5";
+const CHIP_ON = `${CHIP} border-stone-900 bg-stone-900 text-white`;
+const CHIP_OFF = `${CHIP} border-stone-300 bg-white text-stone-700`;
+
 export default async function Home({
   searchParams,
 }: {
-  searchParams: Promise<{ list?: string; page?: string }>;
+  searchParams: Promise<{ list?: string; page?: string; type?: string }>;
 }) {
   const sp = await searchParams;
   const list: ListKind = sp.list === "red" ? "red" : "black";
+  const type: SubjectType | undefined = isSubjectType(sp.type) ? sp.type : undefined;
   const page = Math.max(1, Number(sp.page) || 1);
   const city = await getCurrentCity();
   const db = getDb();
   const cities = Array.from(new Set([config.defaultCity, ...listCities(db, { publicOnly: true })]));
-  const entries = listEntries(db, { city, list, limit: PAGE_SIZE + 1, offset: (page - 1) * PAGE_SIZE });
+  const entries = listEntries(db, { city, list, type, limit: PAGE_SIZE + 1, offset: (page - 1) * PAGE_SIZE });
+  const typeCounts = countEntriesByType(db, { city, list });
+  const total = typeCounts.shop + typeCounts.dm + typeCounts.player;
   const hasMore = entries.length > PAGE_SIZE;
   const shown = entries.slice(0, PAGE_SIZE);
   const counts = endorseCounts(db, shown.map((e) => e.id));
@@ -36,27 +50,41 @@ export default async function Home({
       <div className="flex items-center justify-between gap-3">
         <div className="flex gap-1 rounded-lg bg-stone-200 p-1 text-[15px]">
           <Link
-            href="/?list=black"
+            href={listHref({ list: "black", type })}
             className={`rounded-md px-4 py-1.5 ${list === "black" ? "bg-stone-900 text-white" : "text-stone-700"}`}
           >
             黑榜
           </Link>
           <Link
-            href="/?list=red"
+            href={listHref({ list: "red", type })}
             className={`rounded-md px-4 py-1.5 ${list === "red" ? "bg-rose-600 text-white" : "text-stone-700"}`}
           >
             红榜
           </Link>
         </div>
         <form action={setCity} className="flex items-center text-[15px]">
-          <input type="hidden" name="returnTo" value={`/?list=${list}`} />
+          <input type="hidden" name="returnTo" value={listHref({ list, type })} />
           <CitySelect cities={cities} value={city} />
         </form>
       </div>
 
+      <div className="-mx-4 flex gap-2 overflow-x-auto px-4 text-sm [scrollbar-width:none]">
+        <Link href={listHref({ list })} className={type ? CHIP_OFF : CHIP_ON}>
+          全部 {total}
+        </Link>
+        {SUBJECT_TYPES.map((t) => (
+          <Link key={t} href={listHref({ list, type: t })} className={type === t ? CHIP_ON : CHIP_OFF}>
+            {typeLabel(t)} {typeCounts[t]}
+          </Link>
+        ))}
+      </div>
+
       {shown.length === 0 ? (
         <div className="rounded-lg border border-dashed border-stone-300 bg-white p-8 text-center text-stone-500">
-          <p>{city} 还没有{list === "red" ? "红榜" : "黑榜"}内容。</p>
+          <p>
+            {city} 还没有{type ? typeLabel(type) : ""}
+            {list === "red" ? "红榜" : "黑榜"}内容。
+          </p>
           <Link href="/submit" className="mt-2 inline-block text-stone-900 underline">
             写第一条
           </Link>
@@ -71,14 +99,14 @@ export default async function Home({
 
       <div className="flex justify-between text-[15px]">
         {page > 1 ? (
-          <Link href={`/?list=${list}&page=${page - 1}`} className="rounded-md border border-stone-300 bg-white px-4 py-2">
+          <Link href={listHref({ list, type, page: page - 1 })} className="rounded-md border border-stone-300 bg-white px-4 py-2">
             上一页
           </Link>
         ) : (
           <span />
         )}
         {hasMore && (
-          <Link href={`/?list=${list}&page=${page + 1}`} className="rounded-md border border-stone-300 bg-white px-4 py-2">
+          <Link href={listHref({ list, type, page: page + 1 })} className="rounded-md border border-stone-300 bg-white px-4 py-2">
             下一页
           </Link>
         )}

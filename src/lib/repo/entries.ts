@@ -3,7 +3,7 @@ import type { DatabaseSync } from "node:sqlite";
 import { newId } from "../ids";
 import { appendEvent } from "../events";
 import { scrubPII } from "../scrub";
-import { CATEGORIES, isListKind, type ListKind } from "../taxonomy";
+import { CATEGORIES, isListKind, type ListKind, type SubjectType } from "../taxonomy";
 import {
   now,
   prefixedSubject,
@@ -92,6 +92,7 @@ export function listEntries(
   opts: {
     city?: string;
     list?: ListKind;
+    type?: SubjectType;
     subjectId?: string;
     status?: Status;
     limit?: number;
@@ -105,6 +106,7 @@ export function listEntries(
        WHERE e.status = ?
          AND (? IS NULL OR s.city = ?)
          AND (? IS NULL OR e.list = ?)
+         AND (? IS NULL OR s.type = ?)
          AND (? IS NULL OR e.subject_id = ?)
        ORDER BY e.created_at DESC
        LIMIT ? OFFSET ?`,
@@ -115,12 +117,34 @@ export function listEntries(
       opts.city ?? null,
       opts.list ?? null,
       opts.list ?? null,
+      opts.type ?? null,
+      opts.type ?? null,
       opts.subjectId ?? null,
       opts.subjectId ?? null,
       opts.limit ?? 50,
       opts.offset ?? 0,
     ) as Row[];
   return rows.map((r) => ({ ...rowToEntry(r), subject: prefixedSubject(r) }));
+}
+
+/** Live entries per subject type, for the filter chips on the list page. */
+export function countEntriesByType(
+  db: DatabaseSync,
+  opts: { city?: string; list?: ListKind } = {},
+): Record<SubjectType, number> {
+  const rows = db
+    .prepare(
+      `SELECT s.type AS type, COUNT(*) AS n
+       FROM entries e JOIN subjects s ON s.id = e.subject_id
+       WHERE e.status = 'published'
+         AND (? IS NULL OR s.city = ?)
+         AND (? IS NULL OR e.list = ?)
+       GROUP BY s.type`,
+    )
+    .all(opts.city ?? null, opts.city ?? null, opts.list ?? null, opts.list ?? null) as { type: SubjectType; n: number }[];
+  const out: Record<SubjectType, number> = { shop: 0, dm: 0, player: 0 };
+  for (const r of rows) if (r.type in out) out[r.type] = Number(r.n);
+  return out;
 }
 
 export function setEntryStatus(
