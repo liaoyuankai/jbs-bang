@@ -5,7 +5,7 @@ import { getDb } from "@/lib/db";
 import { fmtDate } from "@/lib/format";
 import { listFeedback } from "@/lib/repo/feedback";
 import { countOpenTargets } from "@/lib/repo/reports";
-import { siteVoteTally } from "@/lib/repo/site-votes";
+import { siteVoteDaily, siteVoteTally } from "@/lib/repo/site-votes";
 import { shortVid } from "@/lib/visitor";
 
 export const dynamic = "force-dynamic";
@@ -17,14 +17,42 @@ export default async function AdminFeedbackPage({ searchParams }: { searchParams
   const open = listFeedback(db, { status: "open" });
   const done = listFeedback(db, { status: "done", limit: 50 });
   const votes = siteVoteTally(db);
+  const days = siteVoteDaily(db, 14).reverse();
 
   return (
     <div className="space-y-5">
       <AdminNav active="feedback" msg={msg} openReports={countOpenTargets(db)} openFeedback={open.length} />
 
-      <p className="rounded-lg border border-stone-200 bg-white px-4 py-3 text-sm">
-        进站弹窗投票：支持 <strong>{votes.up}</strong> · 不支持 <strong>{votes.down}</strong>
-      </p>
+      <section className="rounded-lg border border-stone-200 bg-white px-4 py-3 text-sm">
+        <p>
+          进站弹窗投票：支持 <strong>{votes.up}</strong> · 不支持 <strong>{votes.down}</strong>
+        </p>
+        {days.length > 0 && (
+          <table className="mt-2 w-full text-xs">
+            <thead className="text-left text-stone-500">
+              <tr>
+                <th className="py-1 font-normal">日期</th>
+                <th className="py-1 font-normal">新增支持</th>
+                <th className="py-1 font-normal">新增不支持</th>
+                <th className="py-1 font-normal">累计</th>
+              </tr>
+            </thead>
+            <tbody>
+              {days.map((d) => (
+                <tr key={d.date} className="border-t border-stone-100">
+                  <td className="py-1">{d.date}</td>
+                  <td className="py-1">{d.up > 0 ? `+${d.up}` : "0"}</td>
+                  <td className="py-1">{d.down > 0 ? `+${d.down}` : "0"}</td>
+                  <td className="py-1 text-stone-500">
+                    {d.totalUp} / {d.totalDown}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+        <p className="mt-1 text-xs text-stone-400">按北京时间分天，每个访客只算一票，改票不重复计。</p>
+      </section>
 
       <section className="space-y-3">
         <h2 className="font-semibold">未处理反馈 {open.length}</h2>
