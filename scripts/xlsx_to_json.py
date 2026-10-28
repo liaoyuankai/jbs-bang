@@ -115,23 +115,30 @@ def split_shop_dm(name: str, known_shops):
 
 
 def dm_black_sheet(ws, known_shops):
+    """Columns: A 店名, B dm, C.. 原因 (one floor per cell). A long B cell is a floor, not a name."""
     groups = OrderedDict()
     skipped = []
     for row in ws.iter_rows(values_only=True):
-        cells = [cell(c) for c in row if cell(c)]
-        if not cells:
+        vals = [cell(c) for c in row]
+        name = vals[0] if vals else ""
+        dm_cell = vals[1] if len(vals) > 1 else ""
+        rest = [c for c in vals[2:] if c]
+        if not name and not dm_cell and not rest:
             continue
-        name = cells[0]
         if name in ("店名4", "店名", "dm", "DM"):
+            continue
+        if not name:
+            skipped.append(("no-shop", dm_cell or rest[0]))
             continue
         if len(name) > MAX_NAME or RANT.search(name):
             skipped.append(("rant-or-long", name))
             continue
-        rest = cells[1:]
         dm, shop = split_shop_dm(name, known_shops)
-        if rest and name_like(rest[0]) and not RANT.search(rest[0]):
-            # 店名 | dm 层
-            dm, shop, rest = rest[0], name, rest[1:]
+        if dm_cell:
+            if name_like(dm_cell) and not RANT.search(dm_cell):
+                dm, shop = dm_cell, name
+            else:
+                rest = [dm_cell, *rest]
         if dm is None:
             key, item = ("shop", norm(shop), None), {"type": "shop", "name": shop, "shopName": None}
         else:
@@ -283,7 +290,8 @@ def shop_names(wb):
 
 
 def main(src, out):
-    wb = openpyxl.load_workbook(src, read_only=True, data_only=True)
+    # not read_only: this export omits cell references and read-only mode silently drops most columns
+    wb = openpyxl.load_workbook(src, data_only=True)
     shops = shop_names(wb)
     print(f"known shop names: {len(shops)}")
     items, skipped = [], []
