@@ -25,7 +25,7 @@ export function FeedbackForm() {
         rows={7}
         value={body}
         onChange={(e) => setBody(e.target.value)}
-        placeholder="哪里不好用、想要什么功能、发现了什么问题，都可以写。想收到回复就留个联系方式，只有站长能看到。"
+        placeholder="要更正、下架、投诉，或者哪里不好用、想要什么功能，都可以写。想收到回复请留个联系方式（微信/手机/邮箱），只有站长能看到。"
         className="w-full rounded-md border border-stone-300 bg-white px-3 py-2.5"
       />
       <div className="flex items-center justify-between text-xs text-stone-500">

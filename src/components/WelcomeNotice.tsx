@@ -104,9 +104,9 @@ export function WelcomeNotice() {
             内容发布后<strong>无法修改，也无法删除</strong>；只有涉及人身攻击、辱骂、泄露隐私等情况，经举报后才会下架。
           </li>
           <li>
-            有问题请翻到页面最下面点「
+            有问题请点页面右上角的「
             <Link href="/feedback" onClick={close} className="underline">
-              反馈
+              联系站长
             </Link>
             」，直接告诉站长。
           </li>
@@ -124,7 +124,7 @@ export function WelcomeNotice() {
           </div>
           {vote?.error && <p className="mt-2 text-sm text-red-700">{vote.error}</p>}
           {!vote?.error && mine === "up" && <p className="mt-2 text-sm">谢谢支持！</p>}
-          {!vote?.error && mine === "down" && <p className="mt-2 text-sm">收到。哪里不满意，欢迎去「反馈」告诉站长。</p>}
+          {!vote?.error && mine === "down" && <p className="mt-2 text-sm">收到。哪里不满意，欢迎点右上角「联系站长」告诉站长。</p>}
         </div>
 
         <button type="button" onClick={close} className="mt-4 w-full rounded-md bg-stone-900 px-4 py-3 text-[17px] text-white">
