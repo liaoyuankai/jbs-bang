@@ -58,13 +58,13 @@ export default async function AdminQueuePage({ searchParams }: { searchParams: P
                 name="body"
                 defaultValue={e.body}
                 rows={4}
-                className="w-full rounded border border-stone-300 bg-white px-3 py-2 text-[15px]"
+                className="w-full rounded-md border border-stone-300 bg-white px-3 py-2"
               />
               <div className="flex gap-2">
-                <button type="submit" name="decision" value="approve" className="rounded bg-emerald-700 px-3 py-1.5 text-sm text-white">
+                <button type="submit" name="decision" value="approve" className="rounded-md bg-emerald-700 px-4 py-2 text-[15px] text-white">
                   通过（含编辑）
                 </button>
-                <button type="submit" name="decision" value="reject" className="rounded border border-stone-300 px-3 py-1.5 text-sm">
+                <button type="submit" name="decision" value="reject" className="rounded-md border border-stone-300 bg-white px-4 py-2 text-[15px]">
                   驳回
                 </button>
               </div>
@@ -99,10 +99,10 @@ export default async function AdminQueuePage({ searchParams }: { searchParams: P
             <form action={moderateCommentAction} className="mt-2 flex gap-2">
               <input type="hidden" name="id" value={c.id} />
               <input type="hidden" name="returnTo" value="/admin" />
-              <button type="submit" name="decision" value="approve" className="rounded bg-emerald-700 px-3 py-1.5 text-sm text-white">
+              <button type="submit" name="decision" value="approve" className="rounded-md bg-emerald-700 px-4 py-2 text-[15px] text-white">
                 通过
               </button>
-              <button type="submit" name="decision" value="reject" className="rounded border border-stone-300 px-3 py-1.5 text-sm">
+              <button type="submit" name="decision" value="reject" className="rounded-md border border-stone-300 bg-white px-4 py-2 text-[15px]">
                 驳回
               </button>
             </form>

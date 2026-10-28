@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { setCity } from "@/app/actions/city";
+import { CitySelect } from "@/components/CitySelect";
 import { EntryCard } from "@/components/EntryCard";
 import { getDb } from "@/lib/db";
 import { config } from "@/lib/config";
@@ -33,36 +34,23 @@ export default async function Home({
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3">
-        <div className="flex gap-1 rounded-lg bg-stone-200 p-1 text-sm">
+        <div className="flex gap-1 rounded-lg bg-stone-200 p-1 text-[15px]">
           <Link
             href="/?list=black"
-            className={`rounded-md px-3 py-1 ${list === "black" ? "bg-stone-900 text-white" : "text-stone-700"}`}
+            className={`rounded-md px-4 py-1.5 ${list === "black" ? "bg-stone-900 text-white" : "text-stone-700"}`}
           >
             黑榜
           </Link>
           <Link
             href="/?list=red"
-            className={`rounded-md px-3 py-1 ${list === "red" ? "bg-rose-600 text-white" : "text-stone-700"}`}
+            className={`rounded-md px-4 py-1.5 ${list === "red" ? "bg-rose-600 text-white" : "text-stone-700"}`}
           >
             红榜
           </Link>
         </div>
-        <form action={setCity} className="flex items-center gap-1 text-sm">
+        <form action={setCity} className="flex items-center text-[15px]">
           <input type="hidden" name="returnTo" value={`/?list=${list}`} />
-          <select
-            name="city"
-            defaultValue={city}
-            className="rounded border border-stone-300 bg-white px-2 py-1"
-          >
-            {cities.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
-          <button type="submit" className="rounded border border-stone-300 bg-white px-2 py-1">
-            切换
-          </button>
+          <CitySelect cities={cities} value={city} />
         </form>
       </div>
 
@@ -81,16 +69,16 @@ export default async function Home({
         </div>
       )}
 
-      <div className="flex justify-between text-sm">
+      <div className="flex justify-between text-[15px]">
         {page > 1 ? (
-          <Link href={`/?list=${list}&page=${page - 1}`} className="underline">
+          <Link href={`/?list=${list}&page=${page - 1}`} className="rounded-md border border-stone-300 bg-white px-4 py-2">
             上一页
           </Link>
         ) : (
           <span />
         )}
         {hasMore && (
-          <Link href={`/?list=${list}&page=${page + 1}`} className="underline">
+          <Link href={`/?list=${list}&page=${page + 1}`} className="rounded-md border border-stone-300 bg-white px-4 py-2">
             下一页
           </Link>
         )}

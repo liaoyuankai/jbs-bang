@@ -17,7 +17,7 @@ export function EndorseButton({
       <button
         type="submit"
         disabled={done}
-        className={`rounded border px-3 py-1.5 text-sm ${
+        className={`rounded-md border px-4 py-2 text-[15px] ${
           done ? "border-stone-200 bg-stone-100 text-stone-500" : "border-stone-300 bg-white hover:bg-stone-50"
         }`}
       >

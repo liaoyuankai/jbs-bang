@@ -28,13 +28,13 @@ function Form({
         maxLength={1000}
         rows={3}
         placeholder={placeholder}
-        className="w-full rounded border border-stone-300 bg-white px-3 py-2 text-[15px]"
+        className="w-full rounded-md border border-stone-300 bg-white px-3 py-2"
       />
       <div className="flex items-center gap-3">
         <button
           type="submit"
           disabled={pending}
-          className="rounded bg-stone-900 px-3 py-1.5 text-sm text-white disabled:opacity-50"
+          className="rounded-md bg-stone-900 px-4 py-2 text-[15px] text-white disabled:opacity-50"
         >
           {pending ? "提交中…" : submitLabel}
         </button>

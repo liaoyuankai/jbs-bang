@@ -39,7 +39,7 @@ export default async function AdminEntriesPage({
           <Link
             key={t.key}
             href={`/admin/entries?status=${t.key}`}
-            className={`rounded px-3 py-1 ${status === t.key ? "bg-stone-900 text-white" : "border border-stone-300 bg-white"}`}
+            className={`rounded-md px-3 py-1.5 ${status === t.key ? "bg-stone-900 text-white" : "border border-stone-300 bg-white"}`}
           >
             {t.label}
           </Link>
@@ -70,7 +70,7 @@ export default async function AdminEntriesPage({
           <div className="mt-3 flex flex-wrap items-center gap-2">
             {e.status === "published" && (
               <>
-                <form action={moderateEntryAction} className="flex items-center gap-2">
+                <form action={moderateEntryAction} className="flex w-full items-center gap-2 sm:w-auto">
                   <input type="hidden" name="id" value={e.id} />
                   <input type="hidden" name="decision" value="remove" />
                   <input type="hidden" name="returnTo" value={returnTo} />
@@ -78,9 +78,9 @@ export default async function AdminEntriesPage({
                     name="reason"
                     required
                     placeholder="下架原因（会公开）"
-                    className="rounded border border-stone-300 px-2 py-1 text-sm"
+                    className="min-w-0 flex-1 rounded-md border border-stone-300 px-3 py-2"
                   />
-                  <button type="submit" className="rounded border border-red-300 px-3 py-1 text-sm text-red-700">
+                  <button type="submit" className="shrink-0 rounded-md border border-red-300 bg-white px-4 py-2 text-red-700">
                     下架
                   </button>
                 </form>
@@ -88,7 +88,7 @@ export default async function AdminEntriesPage({
                   <input type="hidden" name="id" value={e.id} />
                   <input type="hidden" name="verified" value={e.verified ? "0" : "1"} />
                   <input type="hidden" name="returnTo" value={returnTo} />
-                  <button type="submit" className="rounded border border-amber-300 px-3 py-1 text-sm text-amber-900">
+                  <button type="submit" className="rounded-md border border-amber-300 bg-white px-4 py-2 text-sm text-amber-900">
                     {e.verified ? "取消核验" : "标记平台核验"}
                   </button>
                 </form>
@@ -99,7 +99,7 @@ export default async function AdminEntriesPage({
                 <input type="hidden" name="id" value={e.id} />
                 <input type="hidden" name="decision" value="approve" />
                 <input type="hidden" name="returnTo" value={returnTo} />
-                <button type="submit" className="rounded bg-emerald-700 px-3 py-1 text-sm text-white">
+                <button type="submit" className="rounded-md bg-emerald-700 px-4 py-2 text-sm text-white">
                   改为通过
                 </button>
               </form>

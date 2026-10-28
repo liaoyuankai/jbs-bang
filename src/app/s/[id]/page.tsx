@@ -55,16 +55,16 @@ export default async function SubjectPage({
         </section>
       )}
 
-      <div className="flex gap-1 rounded-lg bg-stone-200 p-1 text-sm w-fit">
+      <div className="flex w-fit gap-1 rounded-lg bg-stone-200 p-1 text-[15px]">
         <Link
           href={`/s/${id}?list=black`}
-          className={`rounded-md px-3 py-1 ${list === "black" ? "bg-stone-900 text-white" : "text-stone-700"}`}
+          className={`rounded-md px-4 py-1.5 ${list === "black" ? "bg-stone-900 text-white" : "text-stone-700"}`}
         >
           黑榜 {black.length}
         </Link>
         <Link
           href={`/s/${id}?list=red`}
-          className={`rounded-md px-3 py-1 ${list === "red" ? "bg-rose-600 text-white" : "text-stone-700"}`}
+          className={`rounded-md px-4 py-1.5 ${list === "red" ? "bg-rose-600 text-white" : "text-stone-700"}`}
         >
           红榜 {red.length}
         </Link>

@@ -63,7 +63,7 @@ npm run import
 npm install
 cp .env.example .env      # 填 ADMIN_PASSWORD
 npm run dev               # http://localhost:3000
-npm test                  # 73 个单元测试
+npm test                  # 单元测试
 ```
 
 ## 六、环境变量（.env）

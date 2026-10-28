@@ -68,7 +68,7 @@ export function SubmitForm({
           {(["shop", "dm", "player"] as SubjectType[]).map((t) => (
             <label
               key={t}
-              className={`cursor-pointer rounded border px-3 py-1.5 text-sm ${
+              className={`cursor-pointer rounded-md border px-4 py-2 text-[15px] ${
                 type === t ? "border-stone-900 bg-stone-900 text-white" : "border-stone-300 bg-white"
               }`}
             >
@@ -105,13 +105,13 @@ export function SubmitForm({
               required
               defaultValue={query}
               placeholder={{ shop: "店名", dm: "DM 昵称", player: "玩家昵称" }[type]}
-              className="w-full rounded border border-stone-300 bg-white px-3 py-2"
+              className="w-full rounded-md border border-stone-300 bg-white px-3 py-2.5"
             />
             {type === "dm" && (
               <input
                 name="shopName"
                 placeholder="所属店名（可不填）"
-                className="w-full rounded border border-stone-300 bg-white px-3 py-2"
+                className="w-full rounded-md border border-stone-300 bg-white px-3 py-2.5"
               />
             )}
             <input
@@ -120,7 +120,7 @@ export function SubmitForm({
               defaultValue={city}
               required
               placeholder="城市"
-              className="w-full rounded border border-stone-300 bg-white px-3 py-2"
+              className="w-full rounded-md border border-stone-300 bg-white px-3 py-2.5"
             />
             <datalist id="city-options">
               {cities.map((c) => (
@@ -137,7 +137,7 @@ export function SubmitForm({
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder={{ shop: "搜店名", dm: "搜 DM 昵称", player: "搜玩家昵称" }[type]}
-              className="w-full rounded border border-stone-300 bg-white px-3 py-2 text-sm"
+              className="w-full rounded-md border border-stone-300 bg-white px-3 py-2.5"
             />
             {results.length > 0 && (
               <ul className="mt-1 divide-y divide-stone-100 rounded border border-stone-200 bg-white text-sm">
@@ -146,7 +146,7 @@ export function SubmitForm({
                     <button
                       type="button"
                       onClick={() => setSelected(r)}
-                      className="flex w-full items-center gap-2 px-3 py-2 text-left hover:bg-stone-50"
+                      className="flex w-full items-center gap-2 px-3 py-2.5 text-left hover:bg-stone-50"
                     >
                       <span className="font-medium">{r.name}</span>
                       {r.shopName && <span className="text-stone-500">@{r.shopName}</span>}
@@ -156,7 +156,7 @@ export function SubmitForm({
                 ))}
               </ul>
             )}
-            <button type="button" className="mt-2 text-sm underline" onClick={() => setCreating(true)}>
+            <button type="button" className="mt-2 py-1 text-[15px] underline" onClick={() => setCreating(true)}>
               没找到？新建一个
             </button>
           </div>
@@ -169,7 +169,7 @@ export function SubmitForm({
           {(["black", "red"] as ListKind[]).map((l) => (
             <label
               key={l}
-              className={`cursor-pointer rounded border px-3 py-1.5 text-sm ${
+              className={`cursor-pointer rounded-md border px-4 py-2 text-[15px] ${
                 list === l
                   ? l === "red"
                     ? "border-rose-600 bg-rose-600 text-white"
@@ -182,7 +182,7 @@ export function SubmitForm({
             </label>
           ))}
         </div>
-        <select name="category" required className="mt-2 w-full rounded border border-stone-300 bg-white px-3 py-2 text-sm">
+        <select name="category" required className="mt-2 w-full rounded-md border border-stone-300 bg-white px-3 py-2.5">
           {categories.map((c) => (
             <option key={c} value={c}>
               {c}
@@ -202,7 +202,7 @@ export function SubmitForm({
           value={body}
           onChange={(e) => setBody(e.target.value)}
           placeholder="写具体经过：什么时候、哪个本、谁做了什么。不要写手机号、微信号，系统会自动隐去。"
-          className="mt-2 w-full rounded border border-stone-300 bg-white px-3 py-2 text-[15px]"
+          className="mt-2 w-full rounded-md border border-stone-300 bg-white px-3 py-2.5"
         />
         <div className="mt-1 flex justify-between text-xs text-stone-500">
           <span>10 到 2000 字</span>
@@ -210,7 +210,7 @@ export function SubmitForm({
         </div>
         <label className="mt-2 block text-sm">
           发生月份（可不填）
-          <input type="month" name="occurredAt" className="ml-2 rounded border border-stone-300 bg-white px-2 py-1" />
+          <input type="month" name="occurredAt" className="ml-2 rounded-md border border-stone-300 bg-white px-2 py-1.5" />
         </label>
       </fieldset>
 
@@ -239,7 +239,7 @@ export function SubmitForm({
       <button
         type="submit"
         disabled={pending || !!fileError || (!selected && !creating)}
-        className="w-full rounded bg-stone-900 px-4 py-3 text-white disabled:opacity-40"
+        className="w-full rounded-md bg-stone-900 px-4 py-3 text-[17px] text-white disabled:opacity-40"
       >
         {pending ? "提交中…" : "提交，等待审核"}
       </button>

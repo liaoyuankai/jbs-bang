@@ -27,11 +27,11 @@ export function SubjectHeader({
         <span className="text-stone-800">黑榜 {blackCount}</span>
         <Link
           href={`/submit?subject=${subject.id}`}
-          className="ml-auto rounded bg-stone-900 px-3 py-1.5 text-white hover:bg-stone-700"
+          className="ml-auto rounded-md bg-stone-900 px-4 py-2 text-white hover:bg-stone-700"
         >
           写一条
         </Link>
-        <a href="#respond" className="rounded border border-stone-300 px-3 py-1.5 hover:bg-stone-50">
+        <a href="#respond" className="rounded-md border border-stone-300 bg-white px-4 py-2 hover:bg-stone-50">
           我是当事人
         </a>
       </div>

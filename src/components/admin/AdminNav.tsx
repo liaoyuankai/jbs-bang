@@ -3,7 +3,7 @@ import { logoutAction } from "@/app/actions/admin";
 
 export function AdminNav({ active, msg }: { active: "queue" | "entries" | "subjects"; msg?: string }) {
   const cls = (k: string) =>
-    `rounded px-3 py-1.5 text-sm ${active === k ? "bg-stone-900 text-white" : "bg-white border border-stone-300"}`;
+    `rounded-md px-3 py-2 text-[15px] ${active === k ? "bg-stone-900 text-white" : "bg-white border border-stone-300"}`;
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap items-center gap-2">

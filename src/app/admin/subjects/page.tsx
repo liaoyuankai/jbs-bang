@@ -28,9 +28,9 @@ export default async function AdminSubjectsPage({
           name="q"
           defaultValue={q}
           placeholder="按名称、别名、店名搜索"
-          className="flex-1 rounded border border-stone-300 bg-white px-3 py-2 text-sm"
+          className="min-w-0 flex-1 rounded-md border border-stone-300 bg-white px-3 py-2"
         />
-        <button type="submit" className="rounded bg-stone-900 px-3 py-2 text-sm text-white">
+        <button type="submit" className="rounded-md bg-stone-900 px-4 py-2 text-white">
           搜索
         </button>
       </form>
@@ -42,18 +42,18 @@ export default async function AdminSubjectsPage({
           <input type="hidden" name="returnTo" value={returnTo} />
           <div className="flex flex-wrap items-center gap-2 text-sm">
             <TypeBadge type={s.type} />
-            <input name="name" defaultValue={s.name} required className="w-40 rounded border border-stone-300 px-2 py-1" />
+            <input name="name" defaultValue={s.name} required className="min-w-0 flex-1 basis-40 rounded-md border border-stone-300 px-2 py-1.5" />
             {s.type === "dm" && (
-              <input name="shopName" defaultValue={s.shopName ?? ""} placeholder="所属店" className="w-32 rounded border border-stone-300 px-2 py-1" />
+              <input name="shopName" defaultValue={s.shopName ?? ""} placeholder="所属店" className="min-w-0 flex-1 basis-32 rounded-md border border-stone-300 px-2 py-1.5" />
             )}
-            <input name="city" defaultValue={s.city} required className="w-20 rounded border border-stone-300 px-2 py-1" />
+            <input name="city" defaultValue={s.city} required className="w-24 rounded-md border border-stone-300 px-2 py-1.5" />
             <input
               name="aliases"
               defaultValue={s.aliases.join(", ")}
               placeholder="别名，逗号分隔"
-              className="min-w-40 flex-1 rounded border border-stone-300 px-2 py-1"
+              className="min-w-0 flex-1 basis-48 rounded-md border border-stone-300 px-2 py-1.5"
             />
-            <button type="submit" className="rounded bg-stone-900 px-3 py-1 text-white">
+            <button type="submit" className="rounded-md bg-stone-900 px-4 py-1.5 text-white">
               保存
             </button>
             <Link href={`/s/${s.id}`} className="text-xs underline">

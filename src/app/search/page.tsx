@@ -18,10 +18,10 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
           name="q"
           defaultValue={query}
           placeholder="搜店名、DM、玩家昵称"
-          className="flex-1 rounded border border-stone-300 bg-white px-3 py-2"
+          className="min-w-0 flex-1 rounded-md border border-stone-300 bg-white px-3 py-2.5"
           autoFocus
         />
-        <button type="submit" className="rounded bg-stone-900 px-4 py-2 text-white">
+        <button type="submit" className="rounded-md bg-stone-900 px-4 py-2 text-white">
           搜索
         </button>
       </form>
@@ -39,7 +39,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
         <ul className="divide-y divide-stone-100 rounded-lg border border-stone-200 bg-white">
           {results.map((s) => (
             <li key={s.id}>
-              <Link href={`/s/${s.id}`} className="flex items-center gap-2 px-4 py-3 hover:bg-stone-50">
+              <Link href={`/s/${s.id}`} className="flex items-center gap-2 px-4 py-3.5 hover:bg-stone-50 active:bg-stone-50">
                 <TypeBadge type={s.type} />
                 <span className="font-medium">{s.name}</span>
                 {s.shopName && <span className="text-sm text-stone-500">@{s.shopName}</span>}
