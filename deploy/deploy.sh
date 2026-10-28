@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # 在 VPS 上、项目目录里执行：bash deploy/deploy.sh
 # 第一次运行会安装 Docker、生成 .env；之后每次运行 = 重新构建并重启。
+# PREBUILT=1 bash deploy/deploy.sh：不在服务器上构建，直接用已 docker load 进来的 jbs-bang:latest（小内存机器走 deploy/ship.sh）。
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -27,9 +28,15 @@ if [ -z "$domain" ] || [ "$domain" = "example.com" ] || [ -z "$pw" ] || [ "$pw" 
 fi
 
 mkdir -p data/backups data/uploads
-docker compose up -d --build
+if [ "${PREBUILT:-0}" = "1" ]; then
+  docker image inspect jbs-bang:latest >/dev/null 2>&1 || { echo '!! 没有 jbs-bang:latest 镜像，先在本机跑 deploy/ship.sh'; exit 1; }
+  docker compose up -d
+else
+  docker compose up -d --build
+fi
 docker compose ps
 echo
-echo ">> 部署完成：https://${domain}"
-echo ">> 后台：https://${domain}/admin"
+url=$domain; case "$domain" in http://*|https://*) ;; *) url="https://${domain}";; esac
+echo ">> 部署完成：${url}"
+echo ">> 后台：${url}/admin"
 echo ">> 看日志：docker compose logs -f app"

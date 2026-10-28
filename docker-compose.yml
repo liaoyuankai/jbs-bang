@@ -1,5 +1,6 @@
 services:
   app:
+    image: jbs-bang:latest
     build: .
     restart: always
     env_file: .env
