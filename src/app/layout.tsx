@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Footer, Nav } from "@/components/Nav";
 import { SubmitFab } from "@/components/SubmitFab";
+import { WelcomeNotice } from "@/components/WelcomeNotice";
 import { config } from "@/lib/config";
 
 export const metadata: Metadata = {
@@ -26,6 +27,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <main className="mx-auto max-w-2xl px-4 py-4 sm:py-5">{children}</main>
         <Footer />
         <SubmitFab />
+        <WelcomeNotice />
       </body>
     </html>
   );

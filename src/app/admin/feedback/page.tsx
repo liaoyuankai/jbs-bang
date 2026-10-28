@@ -5,6 +5,7 @@ import { getDb } from "@/lib/db";
 import { fmtDate } from "@/lib/format";
 import { listFeedback } from "@/lib/repo/feedback";
 import { countOpenTargets } from "@/lib/repo/reports";
+import { siteVoteTally } from "@/lib/repo/site-votes";
 import { shortVid } from "@/lib/visitor";
 
 export const dynamic = "force-dynamic";
@@ -15,10 +16,15 @@ export default async function AdminFeedbackPage({ searchParams }: { searchParams
   const db = getDb();
   const open = listFeedback(db, { status: "open" });
   const done = listFeedback(db, { status: "done", limit: 50 });
+  const votes = siteVoteTally(db);
 
   return (
     <div className="space-y-5">
       <AdminNav active="feedback" msg={msg} openReports={countOpenTargets(db)} openFeedback={open.length} />
+
+      <p className="rounded-lg border border-stone-200 bg-white px-4 py-3 text-sm">
+        进站弹窗投票：支持 <strong>{votes.up}</strong> · 不支持 <strong>{votes.down}</strong>
+      </p>
 
       <section className="space-y-3">
         <h2 className="font-semibold">未处理反馈 {open.length}</h2>

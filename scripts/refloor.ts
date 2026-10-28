@@ -15,9 +15,10 @@ import fs from "node:fs";
 import { getDb } from "../src/lib/db";
 import { scrubPII } from "../src/lib/scrub";
 import { createComment, listComments } from "../src/lib/repo/comments";
-import { findImportedByHash, hashBody, updateEntryBody, type Entry } from "../src/lib/repo/entries";
+import { findImportedByHash, hashBody, updateEntryBody } from "../src/lib/repo/entries";
 import { findOrCreateSubject } from "../src/lib/repo/subjects";
 import type { ListKind, SubjectType } from "../src/lib/taxonomy";
+import type { Entry } from "../src/lib/types";
 
 type Item = {
   type: SubjectType;

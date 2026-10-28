@@ -93,6 +93,14 @@ CREATE TABLE IF NOT EXISTS feedback (
 );
 CREATE INDEX IF NOT EXISTS idx_feedback_status ON feedback (status, created_at);
 
+CREATE TABLE IF NOT EXISTS site_votes (
+  vid        TEXT PRIMARY KEY,
+  choice     TEXT NOT NULL CHECK (choice IN ('up','down')),
+  ip_hash    TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS rate_events (
   id         INTEGER PRIMARY KEY AUTOINCREMENT,
   ip_hash    TEXT NOT NULL,
