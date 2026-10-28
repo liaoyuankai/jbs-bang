@@ -88,6 +88,9 @@ export function SubmitForm({
         }
       }}
     >
+      {/* the choices travel as hidden fields: some in-app webviews drop a radio that was never tapped */}
+      <input type="hidden" name="type" value={type} />
+      <input type="hidden" name="list" value={list} />
       <fieldset>
         <legend className="text-sm font-semibold">1. 这是关于谁的</legend>
         <div className="mt-2 flex gap-2">
@@ -100,7 +103,6 @@ export function SubmitForm({
             >
               <input
                 type="radio"
-                name="type"
                 value={t}
                 checked={type === t}
                 onChange={() => {
@@ -216,7 +218,7 @@ export function SubmitForm({
                   : "border-stone-300 bg-white"
               }`}
             >
-              <input type="radio" name="list" value={l} checked={list === l} onChange={() => setList(l)} className="sr-only" />
+              <input type="radio" value={l} checked={list === l} onChange={() => setList(l)} className="sr-only" />
               {l === "red" ? "红榜" : "黑榜"}
             </label>
           ))}
