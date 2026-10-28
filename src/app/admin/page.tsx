@@ -5,6 +5,7 @@ import { ListBadge, TypeBadge } from "@/components/Label";
 import { requireAdmin } from "@/lib/admin-auth";
 import { getDb } from "@/lib/db";
 import { fmtDate } from "@/lib/format";
+import { countOpenFeedback } from "@/lib/repo/feedback";
 import { listOpenReports } from "@/lib/repo/reports";
 import { shortVid } from "@/lib/visitor";
 
@@ -18,7 +19,7 @@ export default async function AdminReportsPage({ searchParams }: { searchParams:
 
   return (
     <div className="space-y-5">
-      <AdminNav active="reports" msg={msg} openReports={groups.length} />
+      <AdminNav active="reports" msg={msg} openReports={groups.length} openFeedback={countOpenFeedback(db)} />
 
       <section className="space-y-3">
         <h2 className="font-semibold">待处理举报 {groups.length}</h2>

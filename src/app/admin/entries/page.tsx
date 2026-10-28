@@ -7,6 +7,7 @@ import { getDb } from "@/lib/db";
 import { fmtDate } from "@/lib/format";
 import { confidenceLabel } from "@/lib/labels";
 import { listEntries } from "@/lib/repo/entries";
+import { countOpenFeedback } from "@/lib/repo/feedback";
 import { countOpenTargets } from "@/lib/repo/reports";
 import type { Status } from "@/lib/types";
 
@@ -33,7 +34,7 @@ export default async function AdminEntriesPage({
 
   return (
     <div className="space-y-4">
-      <AdminNav active="entries" msg={sp.msg} openReports={countOpenTargets(db)} />
+      <AdminNav active="entries" msg={sp.msg} openReports={countOpenTargets(db)} openFeedback={countOpenFeedback(db)} />
       <div className="flex gap-2 text-sm">
         {TABS.map((t) => (
           <Link

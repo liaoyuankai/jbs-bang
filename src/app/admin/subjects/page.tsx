@@ -4,6 +4,7 @@ import { AdminNav } from "@/components/admin/AdminNav";
 import { TypeBadge } from "@/components/Label";
 import { requireAdmin } from "@/lib/admin-auth";
 import { getDb } from "@/lib/db";
+import { countOpenFeedback } from "@/lib/repo/feedback";
 import { countOpenTargets } from "@/lib/repo/reports";
 import { listSubjects, searchSubjects } from "@/lib/repo/subjects";
 
@@ -23,7 +24,7 @@ export default async function AdminSubjectsPage({
 
   return (
     <div className="space-y-4">
-      <AdminNav active="subjects" msg={sp.msg} openReports={countOpenTargets(db)} />
+      <AdminNav active="subjects" msg={sp.msg} openReports={countOpenTargets(db)} openFeedback={countOpenFeedback(db)} />
       <form action="/admin/subjects" method="get" className="flex gap-2">
         <input
           name="q"

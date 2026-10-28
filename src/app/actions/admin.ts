@@ -11,6 +11,7 @@ import { getDb } from "@/lib/db";
 import { checkRate, RATE_MESSAGES } from "@/lib/ratelimit";
 import { getComment, setCommentStatus } from "@/lib/repo/comments";
 import { getEntry, setEntryStatus, setVerified } from "@/lib/repo/entries";
+import { markFeedbackDone } from "@/lib/repo/feedback";
 import { handleReports, isReportTargetKind } from "@/lib/repo/reports";
 import { updateSubject } from "@/lib/repo/subjects";
 import { getClientIp, ipHash } from "@/lib/visitor";
@@ -145,6 +146,20 @@ export async function handleReportAction(formData: FormData): Promise<void> {
     } else {
       throw new Error("未知操作");
     }
+  } catch (e) {
+    msg = errorMessage(e);
+  }
+  back(returnTo, msg);
+}
+
+export async function markFeedbackDoneAction(formData: FormData): Promise<void> {
+  await requireAdmin();
+  const id = str(formData, "id");
+  const returnTo = str(formData, "returnTo") || "/admin/feedback";
+  let msg: string | undefined;
+  try {
+    markFeedbackDone(getDb(), id);
+    revalidatePath("/admin/feedback");
   } catch (e) {
     msg = errorMessage(e);
   }

@@ -37,6 +37,9 @@ export function Footer() {
         <Link href="/transparency" className="hover:underline">
           透明度
         </Link>
+        <Link href="/feedback" className="hover:underline">
+          反馈
+        </Link>
         <Link href="/admin" className="hover:underline">
           管理
         </Link>

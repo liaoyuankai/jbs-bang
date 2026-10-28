@@ -1,14 +1,15 @@
 import type { DatabaseSync } from "node:sqlite";
 
-export type RateKind = "entry" | "comment" | "report" | "login";
+export type RateKind = "entry" | "comment" | "report" | "feedback" | "login";
 
-export const RATE_LIMITS: Record<RateKind, number> = { entry: 3, comment: 10, report: 10, login: 10 };
+export const RATE_LIMITS: Record<RateKind, number> = { entry: 3, comment: 10, report: 10, feedback: 5, login: 10 };
 export const RATE_WINDOW_MS = 60 * 60 * 1000;
 
 export const RATE_MESSAGES: Record<RateKind, string> = {
   entry: "提交太频繁了，每小时最多 3 条投稿，请稍后再试",
   comment: "评论太频繁了，每小时最多 10 条，请稍后再试",
   report: "举报太频繁了，每小时最多 10 次，请稍后再试",
+  feedback: "反馈太频繁了，每小时最多 5 条，请稍后再试",
   login: "尝试太频繁了，请一小时后再试",
 };
 

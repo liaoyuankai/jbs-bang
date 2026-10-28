@@ -82,6 +82,17 @@ CREATE TABLE IF NOT EXISTS reports (
 );
 CREATE INDEX IF NOT EXISTS idx_reports_open ON reports (status, created_at);
 
+CREATE TABLE IF NOT EXISTS feedback (
+  id         TEXT PRIMARY KEY,
+  body       TEXT NOT NULL,
+  vid        TEXT NOT NULL,
+  ip_hash    TEXT NOT NULL,
+  status     TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open','done')),
+  created_at TEXT NOT NULL,
+  done_at    TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_feedback_status ON feedback (status, created_at);
+
 CREATE TABLE IF NOT EXISTS rate_events (
   id         INTEGER PRIMARY KEY AUTOINCREMENT,
   ip_hash    TEXT NOT NULL,
