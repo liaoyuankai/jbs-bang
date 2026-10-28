@@ -53,3 +53,38 @@ export function rankSubjects(
     return { subject: rowToSubject(r), ...parts, score: heatScore(parts) };
   });
 }
+
+export type NetRankRow = {
+  subject: Subject;
+  /** people, not posts: see VOTER */
+  red: number;
+  black: number;
+  net: number;
+};
+
+/**
+ * Who an entry counts for on the net board: one ip is one voice per subject and list, however many times it posts.
+ * Imported entries all share the "import" ip but each came from a different person, so each one counts by itself.
+ */
+const VOTER = "CASE WHEN e.source = 'import' THEN 'entry:' || e.id ELSE 'ip:' || e.ip_hash END";
+
+/** One row per subject of one type, scored 红榜人数 − 黑榜人数 over live entries; ties go to the subject with more people. */
+export function rankSubjectsNet(db: DatabaseSync, opts: { city?: string; type: SubjectType }): NetRankRow[] {
+  const rows = db
+    .prepare(
+      `SELECT s.*,
+         COUNT(DISTINCT CASE WHEN e.list = 'red' THEN ${VOTER} END) AS red,
+         COUNT(DISTINCT CASE WHEN e.list = 'black' THEN ${VOTER} END) AS black
+       FROM subjects s
+       JOIN entries e ON e.subject_id = s.id AND e.status = 'published'
+       WHERE (? IS NULL OR s.city = ?) AND s.type = ?
+       GROUP BY s.id
+       ORDER BY (red - black) DESC, (red + black) DESC, s.name ASC`,
+    )
+    .all(opts.city ?? null, opts.city ?? null, opts.type) as Record<string, unknown>[];
+  return rows.map((r) => {
+    const red = Number(r.red);
+    const black = Number(r.black);
+    return { subject: rowToSubject(r), red, black, net: red - black };
+  });
+}
