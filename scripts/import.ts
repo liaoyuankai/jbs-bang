@@ -14,7 +14,6 @@ import { endorse } from "../src/lib/repo/endorsements";
 import { createEntry, findImportedByHash, hashBody } from "../src/lib/repo/entries";
 import { findOrCreateSubject } from "../src/lib/repo/subjects";
 import type { ListKind, SubjectType } from "../src/lib/taxonomy";
-import type { Status } from "../src/lib/types";
 
 type Item = {
   type: SubjectType;
@@ -26,7 +25,6 @@ type Item = {
   body: string;
   comments: string[];
   endorsements: number;
-  status: Status;
 };
 
 const file = process.argv[2] ?? path.join("data", "import.json");
@@ -59,7 +57,7 @@ for (const item of items) {
       body,
       vid: "import-sheet",
       ipHash: "import",
-      status: item.status,
+      status: "published",
       source: "import",
     });
     inserted++;
@@ -72,7 +70,7 @@ for (const item of items) {
           body: c,
           vid: `import-c${i}`,
           ipHash: "import",
-          status: item.status,
+          status: "published",
         });
         comments++;
       } catch (e) {

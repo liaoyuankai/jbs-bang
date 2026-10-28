@@ -13,13 +13,12 @@ import {
   createEntry,
   getEntry,
   listEntries,
-  listPending,
   setEntryStatus,
   setEvidenceCount,
   setVerified,
   updateEntryBody,
 } from "@/lib/repo/entries";
-import { createComment, listComments, listPendingComments, setCommentStatus } from "@/lib/repo/comments";
+import { createComment, listComments, setCommentStatus } from "@/lib/repo/comments";
 import { endorse, endorseCount } from "@/lib/repo/endorsements";
 import { confidenceLabel } from "@/lib/labels";
 import { PII_MASK } from "@/lib/scrub";
@@ -92,31 +91,31 @@ describe("subjects", () => {
     expect(edited.aliases[0]).toContain(PII_MASK);
   });
 
-  it("hides subjects without published content from public search until something is published", () => {
+  it("shows a subject publicly only while it has live content", () => {
     const s = shop();
     expect(searchSubjects(db, "甲店", { publicOnly: true })).toHaveLength(0);
     expect(subjectIsPublic(db, s.id)).toBe(false);
     const e = black(s.id, "v1");
-    expect(searchSubjects(db, "甲店", { publicOnly: true })).toHaveLength(0);
-    setEntryStatus(db, e.id, "published");
     expect(searchSubjects(db, "甲店", { publicOnly: true }).map((x) => x.id)).toEqual([s.id]);
     expect(subjectIsPublic(db, s.id)).toBe(true);
+    setEntryStatus(db, e.id, "removed", { reason: "泄露联系方式" });
+    expect(searchSubjects(db, "甲店", { publicOnly: true })).toHaveLength(0);
+    expect(subjectIsPublic(db, s.id)).toBe(false);
   });
 
-  it("treats a published response as public content too", () => {
+  it("treats a live response as public content too", () => {
     const s = shop();
     const r = createComment(db, { subjectId: s.id, kind: "response", body: "我们是店家，回应如下。", vid: "v9", ipHash: "ip" });
-    expect(subjectIsPublic(db, s.id)).toBe(false);
-    setCommentStatus(db, r.id, "published");
     expect(subjectIsPublic(db, s.id)).toBe(true);
+    setCommentStatus(db, r.id, "removed", { reason: "辱骂" });
+    expect(subjectIsPublic(db, s.id)).toBe(false);
   });
 
   it("lists only cities that have published content when asked", () => {
     const s = shop();
     findOrCreateSubject(db, { type: "shop", name: "某店", city: "咸阳" });
     expect(listCities(db, { publicOnly: true })).toEqual([]);
-    const e = black(s.id, "v1");
-    setEntryStatus(db, e.id, "published");
+    black(s.id, "v1");
     expect(listCities(db, { publicOnly: true })).toEqual(["西安"]);
   });
 });
@@ -137,32 +136,29 @@ describe("entries", () => {
     expect(() => black(s.id, "v1", { category: "开本摆烂" })).toThrow(/分类/);
   });
 
-  it("scrubs contact info and starts as pending", () => {
+  it("scrubs contact info and is published at once", () => {
     const s = shop();
     const e = black(s.id, "v1", { body: `${BODY} 加微信：abc_12345 细聊` });
-    expect(e.status).toBe("pending");
+    expect(e.status).toBe("published");
     expect(e.body).toContain(PII_MASK);
     expect(e.body).not.toContain("abc_12345");
     expect(e.bodyHash).toMatch(/^[0-9a-f]{64}$/);
     expect(getEntry(db, e.id)?.id).toBe(e.id);
   });
 
-  it("hides pending entries from the public list and shows them in the queue", () => {
+  it("lists a new entry publicly at once, filtered by city and list", () => {
     const s = shop();
     const e = black(s.id, "v1");
-    expect(listEntries(db, { city: "西安" })).toHaveLength(0);
-    expect(listPending(db).map((x) => x.id)).toEqual([e.id]);
-    setEntryStatus(db, e.id, "published");
     const listed = listEntries(db, { city: "西安", list: "black" });
     expect(listed.map((x) => x.id)).toEqual([e.id]);
     expect(listed[0].subject.name).toBe("甲店");
+    expect(listEntries(db, { city: "西安", list: "red" })).toHaveLength(0);
     expect(listEntries(db, { city: "咸阳" })).toHaveLength(0);
   });
 
   it("keeps a removed entry on record with reason and time", () => {
     const s = shop();
     const e = black(s.id, "v1");
-    setEntryStatus(db, e.id, "published");
     setEntryStatus(db, e.id, "removed", { reason: "当事人申诉成立" });
     const after = getEntry(db, e.id)!;
     expect(after.status).toBe("removed");
@@ -189,17 +185,15 @@ describe("entries", () => {
 });
 
 describe("comments", () => {
-  it("moderates comments and responses separately", () => {
+  it("publishes comments and responses at once and removes them only with a reason", () => {
     const s = shop();
     const e = black(s.id, "v1");
     const c = createComment(db, { entryId: e.id, subjectId: s.id, kind: "comment", body: "我也遇到过一样的事", vid: "v2", ipHash: "ip2" });
     const r = createComment(db, { subjectId: s.id, kind: "response", body: "我们是店家，这件事的经过是这样的……", vid: "v3", ipHash: "ip3" });
-    expect(listPendingComments(db).map((x) => x.id).sort()).toEqual([c.id, r.id].sort());
-    expect(listComments(db, { entryId: e.id })).toHaveLength(0);
-    setCommentStatus(db, c.id, "published");
-    setCommentStatus(db, r.id, "published");
+    expect(c.status).toBe("published");
     expect(listComments(db, { entryId: e.id }).map((x) => x.id)).toEqual([c.id]);
     expect(listComments(db, { subjectId: s.id, kind: "response" }).map((x) => x.id)).toEqual([r.id]);
+    expect(() => setCommentStatus(db, c.id, "removed", {})).toThrow(/原因/);
     setCommentStatus(db, c.id, "removed", { reason: "辱骂" });
     expect(listComments(db, { entryId: e.id })).toHaveLength(0);
   });

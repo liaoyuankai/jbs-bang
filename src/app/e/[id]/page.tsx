@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { moderateCommentAction } from "@/app/actions/admin";
 import { CommentForm } from "@/components/CommentForm";
 import { EndorseButton } from "@/components/EndorseButton";
+import { ReportButton } from "@/components/ReportButton";
 import { Label, ListBadge, TypeBadge } from "@/components/Label";
 import { isAdmin } from "@/lib/admin-auth";
 import { getDb } from "@/lib/db";
@@ -19,7 +21,8 @@ export default async function EntryPage({ params }: { params: Promise<{ id: stri
   const db = getDb();
   const entry = getEntryWithSubject(db, id);
   if (!entry) notFound();
-  if ((entry.status === "pending" || entry.status === "rejected") && !(await isAdmin())) notFound();
+  const admin = await isAdmin();
+  if ((entry.status === "pending" || entry.status === "rejected") && !admin) notFound();
 
   const s = entry.subject;
   const label = confidenceLabel(db, entry);
@@ -63,10 +66,11 @@ export default async function EntryPage({ params }: { params: Promise<{ id: stri
               <span>{entry.source === "import" ? "表格存档" : shortVid(entry.vid)}</span>
               {entry.occurredAt && <span>发生于 {entry.occurredAt}</span>}
               <span>{fmtDate(entry.createdAt)}</span>
-              {entry.evidenceCount > 0 && <span>附证据 {entry.evidenceCount} 张，审核已查看，不公开</span>}
+              {entry.evidenceCount > 0 && <span>附证据 {entry.evidenceCount} 张，仅站长可见</span>}
             </div>
-            <div className="mt-3">
+            <div className="mt-3 flex flex-wrap items-center gap-3">
               <EndorseButton entryId={id} list={entry.list} count={count} done={done} />
+              <ReportButton targetKind="entry" targetId={id} />
             </div>
           </article>
 
@@ -79,8 +83,22 @@ export default async function EntryPage({ params }: { params: Promise<{ id: stri
                 {comments.map((c) => (
                   <li key={c.id} className="py-2">
                     <p className="whitespace-pre-wrap text-[15px] leading-relaxed">{c.body}</p>
-                    <div className="mt-1 text-xs text-stone-500">
-                      {c.vid.startsWith("import-") ? "表格存档" : shortVid(c.vid)} · {fmtDate(c.createdAt)}
+                    <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-stone-500">
+                      <span>
+                        {c.vid.startsWith("import-") ? "表格存档" : shortVid(c.vid)} · {fmtDate(c.createdAt)}
+                      </span>
+                      <ReportButton targetKind="comment" targetId={c.id} />
+                      {admin && (
+                        <form action={moderateCommentAction} className="flex basis-full items-center gap-2 pt-1">
+                          <input type="hidden" name="id" value={c.id} />
+                          <input type="hidden" name="decision" value="remove" />
+                          <input type="hidden" name="returnTo" value={`/e/${id}`} />
+                          <input name="reason" required placeholder="站长下架原因" className="min-w-0 flex-1 rounded-md border border-stone-300 px-2 py-1" />
+                          <button type="submit" className="rounded-md border border-red-300 bg-white px-3 py-1 text-red-700">
+                            下架
+                          </button>
+                        </form>
+                      )}
                     </div>
                   </li>
                 ))}

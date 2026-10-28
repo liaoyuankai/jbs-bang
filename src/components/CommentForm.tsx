@@ -50,7 +50,7 @@ export function CommentForm({ entryId }: { entryId: string }) {
     <Form
       action={createCommentAction}
       hidden={{ entryId }}
-      placeholder="写评论，审核通过后显示。不要写联系方式。"
+      placeholder="写评论。不要写联系方式。"
       submitLabel="提交评论"
     />
   );
@@ -61,7 +61,7 @@ export function ResponseForm({ subjectId }: { subjectId: string }) {
     <Form
       action={createResponseAction}
       hidden={{ subjectId }}
-      placeholder="说明事情经过。审核通过后置顶显示在本页。"
+      placeholder="说明事情经过，会置顶显示在本页。"
       submitLabel="提交回应"
     />
   );

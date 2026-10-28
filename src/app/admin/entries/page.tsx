@@ -7,14 +7,14 @@ import { getDb } from "@/lib/db";
 import { fmtDate } from "@/lib/format";
 import { confidenceLabel } from "@/lib/labels";
 import { listEntries } from "@/lib/repo/entries";
-import { isStatus, type Status } from "@/lib/types";
+import { countOpenTargets } from "@/lib/repo/reports";
+import type { Status } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
 const TABS: { key: Status; label: string }[] = [
-  { key: "published", label: "已公开" },
+  { key: "published", label: "公开中" },
   { key: "removed", label: "已下架" },
-  { key: "rejected", label: "已驳回" },
 ];
 
 export default async function AdminEntriesPage({
@@ -24,7 +24,7 @@ export default async function AdminEntriesPage({
 }) {
   await requireAdmin();
   const sp = await searchParams;
-  const status: Status = isStatus(sp.status) && sp.status !== "pending" ? sp.status : "published";
+  const status: Status = sp.status === "removed" ? "removed" : "published";
   const page = Math.max(1, Number(sp.page) || 1);
   const db = getDb();
   const entries = listEntries(db, { status, limit: 51, offset: (page - 1) * 50 });
@@ -33,7 +33,7 @@ export default async function AdminEntriesPage({
 
   return (
     <div className="space-y-4">
-      <AdminNav active="entries" msg={sp.msg} />
+      <AdminNav active="entries" msg={sp.msg} openReports={countOpenTargets(db)} />
       <div className="flex gap-2 text-sm">
         {TABS.map((t) => (
           <Link
@@ -93,16 +93,6 @@ export default async function AdminEntriesPage({
                   </button>
                 </form>
               </>
-            )}
-            {e.status === "rejected" && (
-              <form action={moderateEntryAction}>
-                <input type="hidden" name="id" value={e.id} />
-                <input type="hidden" name="decision" value="approve" />
-                <input type="hidden" name="returnTo" value={returnTo} />
-                <button type="submit" className="rounded-md bg-emerald-700 px-4 py-2 text-sm text-white">
-                  改为通过
-                </button>
-              </form>
             )}
           </div>
         </article>

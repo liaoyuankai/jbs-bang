@@ -230,7 +230,7 @@ export function SubmitForm({
             else setFileError(null);
           }}
         />
-        <p className="mt-1 text-xs text-stone-500">最多 5 张，每张 5 MB 以内。只有审核能看到，不会公开。</p>
+        <p className="mt-1 text-xs text-stone-500">最多 5 张，每张 5 MB 以内。只有站长能看到，不会公开。</p>
         {fileError && <p className="mt-1 text-sm text-red-700">{fileError}</p>}
       </fieldset>
 
@@ -241,9 +241,9 @@ export function SubmitForm({
         disabled={pending || !!fileError || (!selected && !creating)}
         className="w-full rounded-md bg-stone-900 px-4 py-3 text-[17px] text-white disabled:opacity-40"
       >
-        {pending ? "提交中…" : "提交，等待审核"}
+        {pending ? "发布中…" : "发布"}
       </button>
-      <p className="text-center text-xs text-stone-500">提交即表示你同意社区规范，内容审核通过后公开。</p>
+      <p className="text-center text-xs text-stone-500">发布即表示你同意社区规范。</p>
     </form>
   );
 }

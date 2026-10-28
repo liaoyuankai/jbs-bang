@@ -9,8 +9,9 @@ import { ADMIN_COOKIE, ADMIN_SESSION_MS, requireAdmin, signAdmin } from "@/lib/a
 import { config } from "@/lib/config";
 import { getDb } from "@/lib/db";
 import { checkRate, RATE_MESSAGES } from "@/lib/ratelimit";
-import { setCommentStatus } from "@/lib/repo/comments";
-import { getEntry, setEntryStatus, setVerified, updateEntryBody } from "@/lib/repo/entries";
+import { getComment, setCommentStatus } from "@/lib/repo/comments";
+import { getEntry, setEntryStatus, setVerified } from "@/lib/repo/entries";
+import { handleReports, isReportTargetKind } from "@/lib/repo/reports";
 import { updateSubject } from "@/lib/repo/subjects";
 import { getClientIp, ipHash } from "@/lib/visitor";
 
@@ -53,8 +54,9 @@ export async function logoutAction(): Promise<void> {
   redirect("/admin/login");
 }
 
+/** Same-origin paths only; an admin acting from a public page lands back on that page. */
 function back(returnTo: string, msg?: string): never {
-  const base = returnTo.startsWith("/admin") && !returnTo.startsWith("//") ? returnTo : "/admin";
+  const base = returnTo.startsWith("/") && !returnTo.startsWith("//") ? returnTo : "/admin";
   const sep = base.includes("?") ? "&" : "?";
   redirect(msg ? `${base}${sep}msg=${encodeURIComponent(msg)}` : base);
 }
@@ -69,34 +71,37 @@ function revalidateEntry(id: string, subjectId: string) {
   revalidatePath("/admin/entries");
 }
 
+/** Content is live the moment it is posted; removal (with a public reason) is the only moderation step. */
+function removeEntry(db: ReturnType<typeof getDb>, id: string, reason: string) {
+  const cur = getEntry(db, id);
+  if (!cur) throw new Error("条目不存在");
+  if (cur.status !== "published") throw new Error("只有公开中的条目可以下架；已下架的保留原墓碑");
+  setEntryStatus(db, id, "removed", { reason });
+  handleReports(db, "entry", id);
+  revalidateEntry(id, cur.subjectId);
+}
+
+function removeComment(db: ReturnType<typeof getDb>, id: string, reason: string) {
+  const cur = getComment(db, id);
+  if (!cur) throw new Error("评论不存在");
+  if (cur.status !== "published") throw new Error("只有公开中的评论可以下架");
+  setCommentStatus(db, id, "removed", { reason });
+  handleReports(db, "comment", id);
+  revalidatePath("/admin");
+  revalidatePath(`/s/${cur.subjectId}`);
+  if (cur.entryId) revalidatePath(`/e/${cur.entryId}`);
+}
+
 export async function moderateEntryAction(formData: FormData): Promise<void> {
   await requireAdmin();
   const id = str(formData, "id");
   const decision = str(formData, "decision");
   const reason = str(formData, "reason");
-  const body = str(formData, "body");
   const returnTo = str(formData, "returnTo") || "/admin";
   let msg: string | undefined;
   try {
-    const db = getDb();
-    const cur = getEntry(db, id);
-    if (!cur) throw new Error("条目不存在");
-    if (decision === "approve") {
-      if (cur.status !== "pending" && cur.status !== "rejected") {
-        throw new Error("只有待审或已驳回的条目可以通过；已下架的条目保留墓碑，不能重新公开");
-      }
-      if (body && body !== cur.body) updateEntryBody(db, id, body);
-      setEntryStatus(db, id, "published");
-    } else if (decision === "reject") {
-      if (cur.status !== "pending") throw new Error("只有待审条目可以驳回");
-      setEntryStatus(db, id, "rejected");
-    } else if (decision === "remove") {
-      if (cur.status !== "published") throw new Error("只有已公开条目可以下架");
-      setEntryStatus(db, id, "removed", { reason });
-    } else {
-      throw new Error("未知操作");
-    }
-    revalidateEntry(id, cur.subjectId);
+    if (decision !== "remove") throw new Error("未知操作");
+    removeEntry(getDb(), id, reason);
   } catch (e) {
     msg = errorMessage(e);
   }
@@ -111,14 +116,35 @@ export async function moderateCommentAction(formData: FormData): Promise<void> {
   const returnTo = str(formData, "returnTo") || "/admin";
   let msg: string | undefined;
   try {
+    if (decision !== "remove") throw new Error("未知操作");
+    removeComment(getDb(), id, reason);
+  } catch (e) {
+    msg = errorMessage(e);
+  }
+  back(returnTo, msg);
+}
+
+/** Resolves every open report on one target: take the content down, or leave it up and close the reports. */
+export async function handleReportAction(formData: FormData): Promise<void> {
+  await requireAdmin();
+  const targetKind = str(formData, "targetKind");
+  const targetId = str(formData, "targetId");
+  const decision = str(formData, "decision");
+  const reason = str(formData, "reason");
+  const returnTo = str(formData, "returnTo") || "/admin";
+  let msg: string | undefined;
+  try {
+    if (!isReportTargetKind(targetKind)) throw new Error("举报对象不正确");
     const db = getDb();
-    const status = decision === "approve" ? "published" : decision === "reject" ? "rejected" : decision === "remove" ? "removed" : null;
-    if (!status) throw new Error("未知操作");
-    const c = setCommentStatus(db, id, status, { reason });
-    revalidatePath("/admin");
-    revalidatePath("/search");
-    revalidatePath(`/s/${c.subjectId}`);
-    if (c.entryId) revalidatePath(`/e/${c.entryId}`);
+    if (decision === "remove") {
+      if (targetKind === "entry") removeEntry(db, targetId, reason);
+      else removeComment(db, targetId, reason);
+    } else if (decision === "dismiss") {
+      handleReports(db, targetKind, targetId);
+      revalidatePath("/admin");
+    } else {
+      throw new Error("未知操作");
+    }
   } catch (e) {
     msg = errorMessage(e);
   }

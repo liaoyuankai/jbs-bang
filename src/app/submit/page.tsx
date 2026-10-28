@@ -25,7 +25,7 @@ export default async function SubmitPage({
     <div className="space-y-4">
       <h1 className="text-xl font-bold">投稿</h1>
       <p className="text-sm text-stone-600">
-        先审后发。写具体的事，不写联系方式，不写纯辱骂。审核通过后公开，并显示为「单方陈述」。
+        发布后立即公开，不需要注册，显示为「单方陈述」。写具体的事，不写联系方式，不写纯辱骂；被举报且查实的会下架。
       </p>
       <div className="rounded-lg border border-stone-200 bg-white p-4">
         <SubmitForm initialSubject={initialSubject} initialName={sp.name?.slice(0, 50) ?? ""} city={city} cities={cities} />

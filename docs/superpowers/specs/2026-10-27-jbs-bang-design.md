@@ -11,11 +11,11 @@
 
 - 访客不登录就能看：按城市看红榜/黑榜，搜店家、DM、玩家，看单条详情和评论。
 - 访客不登录就能投稿、评论、回应、点「点了/我也遇到过」。
-- 所有投稿、评论、回应先进审核队列，站长一键通过/驳回后才公开（先审后发）。
+- 投稿、评论、回应发布即公开（先发后审，2026-10-28 改）。任何访客可举报；站长在举报队列里决定下架或留着。
 - 手机号、微信号、QQ 号、身份证号在入库前自动隐去。
 - 永不硬删：下架只改状态并留墓碑（时间 + 原因），所有状态变化追加到带哈希链的事件表，透明度页公开最新链头和下架记录。
-- 证据截图只有审核能看，公开页只显示「附证据 N 张」。
-- 旧表格数据导入：红榜直接公开，黑榜进审核队列，玩家黑榜无事由的不导入。
+- 证据截图只有站长能看，公开页只显示「附证据 N 张」。
+- 旧表格数据导入：红榜黑榜都直接公开，玩家黑榜无事由的不导入。
 - 一台 VPS 用 docker compose 起来，Caddy 自动 HTTPS，每日备份脚本。
 
 ## 非目标（这版不做）
@@ -24,7 +24,7 @@
 
 ## 反目标（做了就算失败）
 
-- 有人能绕过审核直接公开内容。
+- 有人能让内容被无痕删除。
 - 公开页出现手机号/微信号。
 - 任何代码路径物理删除投稿或评论。
 - 证据原图能被公开访问。
@@ -43,7 +43,8 @@
 - entry：一条红榜或黑榜。字段：subject_id, list(red|black), category, body, body_hash, occurred_at(YYYY-MM，可空), evidence_count, vid（访客匿名 id）, ip_hash, status(pending|published|rejected|removed), source(web|import), verified(0|1), removed_reason, removed_at。
 - comment：挂在 entry 上的评论，或挂在 subject 上的当事人回应 kind(comment|response)。同样有 status。
 - endorsement：(entry_id, vid) 唯一，即「点了 / 我也遇到过」。
-- event：seq, kind, ref_id, payload, prev_hash, hash, created_at。每次创建/审核/下架都追加一条。
+- report：target_kind(entry|comment), target_id, reason, detail, vid, ip_hash, status(open|handled)；同一访客对同一目标只算一次。
+- event：seq, kind, ref_id, payload, prev_hash, hash, created_at。每次创建/举报/下架都追加一条。
 
 可信度标签：removed → 已撤下；verified=1 → 平台核验；同一 subject 同一 category 下 ≥3 个不同 vid 的已公开黑榜 → 多方印证；source=import → 历史存档·单方陈述；其余 → 单方陈述。
 

@@ -55,7 +55,7 @@ export function createEntry(db: DatabaseSync, input: NewEntry): Entry {
   }
   const body = validateBody(input.body);
   const id = newId();
-  const status: Status = input.status ?? "pending";
+  const status: Status = input.status ?? "published";
   const source: Source = input.source ?? "web";
   const occurredAt = input.occurredAt && /^\d{4}-\d{2}$/.test(input.occurredAt) ? input.occurredAt : null;
   const bodyHash = hashBody(body);
@@ -120,17 +120,6 @@ export function listEntries(
       opts.limit ?? 50,
       opts.offset ?? 0,
     ) as Row[];
-  return rows.map((r) => ({ ...rowToEntry(r), subject: prefixedSubject(r) }));
-}
-
-export function listPending(db: DatabaseSync): EntryWithSubject[] {
-  const rows = db
-    .prepare(
-      `SELECT e.*, ${SUBJECT_JOIN_COLS}
-       FROM entries e JOIN subjects s ON s.id = e.subject_id
-       WHERE e.status = 'pending' ORDER BY e.created_at ASC`,
-    )
-    .all() as Row[];
   return rows.map((r) => ({ ...rowToEntry(r), subject: prefixedSubject(r) }));
 }
 

@@ -2,15 +2,7 @@ import type { DatabaseSync } from "node:sqlite";
 import { newId } from "../ids";
 import { appendEvent } from "../events";
 import { scrubPII } from "../scrub";
-import {
-  now,
-  prefixedSubject,
-  rowToComment,
-  SUBJECT_JOIN_COLS,
-  type Comment,
-  type CommentWithSubject,
-  type Status,
-} from "../types";
+import { now, rowToComment, type Comment, type Status } from "../types";
 
 type Row = Record<string, unknown>;
 
@@ -36,7 +28,7 @@ export function createComment(
   }
   const body = scrubPII(b);
   const id = newId();
-  const status: Status = input.status ?? "pending";
+  const status: Status = input.status ?? "published";
   db.prepare(
     `INSERT INTO comments (id, entry_id, subject_id, kind, body, vid, ip_hash, status, created_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -78,17 +70,6 @@ export function listComments(
       opts.kind ?? null,
     ) as Row[];
   return rows.map(rowToComment);
-}
-
-export function listPendingComments(db: DatabaseSync): CommentWithSubject[] {
-  const rows = db
-    .prepare(
-      `SELECT c.*, ${SUBJECT_JOIN_COLS}
-       FROM comments c JOIN subjects s ON s.id = c.subject_id
-       WHERE c.status = 'pending' ORDER BY c.created_at ASC`,
-    )
-    .all() as Row[];
-  return rows.map((r) => ({ ...rowToComment(r), subject: prefixedSubject(r) }));
 }
 
 export function setCommentStatus(

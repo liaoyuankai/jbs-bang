@@ -10,7 +10,9 @@ import { endorseCounts } from "@/lib/repo/endorsements";
 import { listEntries } from "@/lib/repo/entries";
 import { getSubject, subjectIsPublic } from "@/lib/repo/subjects";
 import type { ListKind } from "@/lib/taxonomy";
+import { moderateCommentAction } from "@/app/actions/admin";
 import { ResponseForm } from "@/components/CommentForm";
+import { ReportButton } from "@/components/ReportButton";
 import { isAdmin } from "@/lib/admin-auth";
 
 export const dynamic = "force-dynamic";
@@ -27,8 +29,9 @@ export default async function SubjectPage({
   const db = getDb();
   const subject = getSubject(db, id);
   if (!subject) notFound();
-  // a subject with nothing published yet is only visible to the admin, so unreviewed names never leak
-  if (!subjectIsPublic(db, id) && !(await isAdmin())) notFound();
+  const admin = await isAdmin();
+  // a subject with nothing live is only visible to the admin, so names with every entry removed drop out of view
+  if (!subjectIsPublic(db, id) && !admin) notFound();
 
   const red = listEntries(db, { subjectId: id, list: "red", limit: 200 });
   const black = listEntries(db, { subjectId: id, list: "black", limit: 200 });
@@ -48,7 +51,21 @@ export default async function SubjectPage({
             {responses.map((r) => (
               <li key={r.id} className="whitespace-pre-wrap text-[15px] leading-relaxed">
                 {r.body}
-                <div className="mt-1 text-xs text-sky-800/70">{fmtDate(r.createdAt)}</div>
+                <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-sky-800/70">
+                  <span>{fmtDate(r.createdAt)}</span>
+                  <ReportButton targetKind="comment" targetId={r.id} />
+                  {admin && (
+                    <form action={moderateCommentAction} className="flex basis-full items-center gap-2 pt-1">
+                      <input type="hidden" name="id" value={r.id} />
+                      <input type="hidden" name="decision" value="remove" />
+                      <input type="hidden" name="returnTo" value={`/s/${id}`} />
+                      <input name="reason" required placeholder="站长下架原因" className="min-w-0 flex-1 rounded-md border border-stone-300 px-2 py-1" />
+                      <button type="submit" className="rounded-md border border-red-300 bg-white px-3 py-1 text-red-700">
+                        下架
+                      </button>
+                    </form>
+                  )}
+                </div>
               </li>
             ))}
           </ul>
@@ -91,7 +108,7 @@ export default async function SubjectPage({
       <section id="respond" className="rounded-lg border border-stone-200 bg-white p-4">
         <h2 className="font-semibold">我是当事人，提交回应</h2>
         <p className="mt-1 text-sm text-stone-500">
-          回应审核通过后会置顶显示在本页，与投稿并列，不会覆盖投稿。请只写事实经过，不要写联系方式。
+          回应会置顶显示在本页，与投稿并列，不会覆盖投稿。请只写事实经过，不要写联系方式。
         </p>
         <ResponseForm subjectId={id} />
       </section>

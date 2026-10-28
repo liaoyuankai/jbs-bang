@@ -1,6 +1,6 @@
 # 剧本杀口碑榜（jbs-bang）
 
-剧本杀店家、DM、玩家的红榜与黑榜。先审后发，联系方式自动隐去，下架留痕，事件哈希链可验证。数据全部在你自己的服务器上。
+剧本杀店家、DM、玩家的红榜与黑榜。匿名发布、即时公开、可举报，联系方式自动隐去，下架留痕，事件哈希链可验证。数据全部在你自己的服务器上。
 
 - 设计：`docs/superpowers/specs/2026-10-27-jbs-bang-design.md`
 - 技术：Next.js 16（App Router）+ SQLite（Node 内置 `node:sqlite`，无原生依赖）+ Tailwind；Docker + Caddy 自动 HTTPS。
@@ -41,10 +41,12 @@ bash deploy/deploy.sh
 | 异地备份 | 装 `rclone`，配好远端，然后 `BACKUP_REMOTE=远端名:桶名 bash deploy/backup.sh` |
 | 恢复 | `docker compose stop app && rm -f data/app.db-wal data/app.db-shm && cp data/backups/app-某日期.db data/app.db && docker compose start app`（先删 wal/shm，否则旧日志会覆盖恢复的数据） |
 
-## 三、审核
+## 三、处理举报
 
-- `/admin`：待审投稿、待审评论与回应。通过前可以直接改正文（去掉辱骂、保留事实）。
-- `/admin/entries`：已公开条目可以「下架」（原因必填，会公开显示在墓碑和透明度页）或「标记平台核验」。
+内容发布即公开，不需要注册。任何人可以举报投稿、评论、回应；你只在收到举报后决定下架还是留着。
+
+- `/admin`：举报队列。每条显示被举报的内容、举报次数与理由，按钮「下架」（原因必填，会公开显示在墓碑和透明度页）或「留着，忽略举报」。
+- `/admin/entries`：公开中 / 已下架的条目，可以直接「下架」或「标记平台核验」。
 - `/admin/subjects`：改名、改城市、加别名。
 - 证据图只有登录后台才能看，公开页只显示「附证据 N 张」。
 
@@ -55,7 +57,7 @@ python -P scripts/xlsx_to_json.py "D:/path/to/dm黑榜.xlsx" data/import.json
 npm run import
 ```
 
-红榜直接公开，黑榜全部进待审队列，由你在 `/admin` 逐条决定。重复运行不会重复插入。
+全部直接公开。重复运行不会重复插入。
 
 ## 五、本地开发
 

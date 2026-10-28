@@ -4,6 +4,7 @@ import { AdminNav } from "@/components/admin/AdminNav";
 import { TypeBadge } from "@/components/Label";
 import { requireAdmin } from "@/lib/admin-auth";
 import { getDb } from "@/lib/db";
+import { countOpenTargets } from "@/lib/repo/reports";
 import { listSubjects, searchSubjects } from "@/lib/repo/subjects";
 
 export const dynamic = "force-dynamic";
@@ -22,7 +23,7 @@ export default async function AdminSubjectsPage({
 
   return (
     <div className="space-y-4">
-      <AdminNav active="subjects" msg={sp.msg} />
+      <AdminNav active="subjects" msg={sp.msg} openReports={countOpenTargets(db)} />
       <form action="/admin/subjects" method="get" className="flex gap-2">
         <input
           name="q"

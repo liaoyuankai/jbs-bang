@@ -6,7 +6,7 @@ import { config } from "@/lib/config";
 
 export const metadata: Metadata = {
   title: config.siteName,
-  description: "剧本杀店家、DM、玩家的红榜与黑榜。先审后发，下架留痕。",
+  description: "剧本杀店家、DM、玩家的红榜与黑榜。匿名发布，即时公开，下架留痕。",
   appleWebApp: { capable: true, title: config.siteName, statusBarStyle: "default" },
   formatDetection: { telephone: false },
 };

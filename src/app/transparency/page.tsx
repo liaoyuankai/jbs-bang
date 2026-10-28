@@ -4,6 +4,7 @@ import { eventCount, latestHash } from "@/lib/events";
 import { fmtDate } from "@/lib/format";
 import { countCommentsByStatus } from "@/lib/repo/comments";
 import { countByStatus, listRemoved } from "@/lib/repo/entries";
+import { countReports } from "@/lib/repo/reports";
 
 export const dynamic = "force-dynamic";
 
@@ -11,6 +12,7 @@ export default function TransparencyPage() {
   const db = getDb();
   const entries = countByStatus(db);
   const comments = countCommentsByStatus(db);
+  const reports = countReports(db);
   const seq = eventCount(db);
   const head = latestHash(db);
   const removed = listRemoved(db, 200);
@@ -30,21 +32,24 @@ export default function TransparencyPage() {
             </tr>
           </thead>
           <tbody>
-            {(["published", "pending", "rejected", "removed"] as const).map((s) => (
+            {(["published", "removed"] as const).map((s) => (
               <tr key={s} className="border-t border-stone-100">
-                <td className="py-1">{{ published: "已公开", pending: "待审核", rejected: "已驳回", removed: "已下架" }[s]}</td>
+                <td className="py-1">{{ published: "公开中", removed: "已下架" }[s]}</td>
                 <td className="py-1">{entries[s]}</td>
                 <td className="py-1">{comments[s]}</td>
               </tr>
             ))}
           </tbody>
         </table>
+        <p className="mt-3 text-sm text-stone-600">
+          举报：待处理 {reports.open}，已处理 {reports.handled}。内容发布即公开，站长只在收到举报后决定是否下架。
+        </p>
       </section>
 
       <section className="rounded-lg border border-stone-200 bg-white p-4">
         <h2 className="font-semibold">事件链</h2>
         <p className="mt-1 text-sm text-stone-600">
-          每一次创建、审核、编辑、下架都追加一条事件，每条事件的哈希包含前一条的哈希。链头如下，任何人可以留存比对。
+          每一次创建、举报、下架都追加一条事件，每条事件的哈希包含前一条的哈希。链头如下，任何人可以留存比对。
         </p>
         <dl className="mt-2 text-sm">
           <div className="flex gap-2">

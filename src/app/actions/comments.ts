@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { errorMessage, type ActionState } from "@/lib/action-state";
 import { getDb } from "@/lib/db";
 import { checkRate, RATE_MESSAGES } from "@/lib/ratelimit";
@@ -35,9 +36,12 @@ async function submit(kind: "comment" | "response", formData: FormData): Promise
     if (!checkRate(db, ip, "comment")) return { error: RATE_MESSAGES.comment };
 
     createComment(db, { entryId: kind === "comment" ? entryId : null, subjectId, kind, body, vid, ipHash: ip });
+    // the new comment is live at once, so refresh the page the form sits on
+    if (kind === "comment" && entryId) revalidatePath(`/e/${entryId}`);
+    revalidatePath(`/s/${subjectId}`);
     return {
       ok: true,
-      message: kind === "comment" ? "评论已提交，审核通过后显示。" : "回应已提交，审核通过后会置顶显示。",
+      message: kind === "comment" ? "评论已发布。" : "回应已发布，已置顶显示在本页。",
     };
   } catch (e) {
     return { error: errorMessage(e) };

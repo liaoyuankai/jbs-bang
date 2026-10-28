@@ -44,7 +44,7 @@ export function Footer() {
           管理
         </Link>
       </div>
-      <p className="mt-2">所有内容先审后发，联系方式自动隐去，下架留痕。</p>
+      <p className="mt-2">内容即时公开，可举报，联系方式自动隐去，下架留痕。</p>
     </footer>
   );
 }

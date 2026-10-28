@@ -67,6 +67,21 @@ CREATE TABLE IF NOT EXISTS events (
   created_at TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS reports (
+  id          TEXT PRIMARY KEY,
+  target_kind TEXT NOT NULL CHECK (target_kind IN ('entry','comment')),
+  target_id   TEXT NOT NULL,
+  reason      TEXT NOT NULL,
+  detail      TEXT,
+  vid         TEXT NOT NULL,
+  ip_hash     TEXT NOT NULL,
+  status      TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open','handled')),
+  created_at  TEXT NOT NULL,
+  handled_at  TEXT,
+  UNIQUE (target_kind, target_id, vid)
+);
+CREATE INDEX IF NOT EXISTS idx_reports_open ON reports (status, created_at);
+
 CREATE TABLE IF NOT EXISTS rate_events (
   id         INTEGER PRIMARY KEY AUTOINCREMENT,
   ip_hash    TEXT NOT NULL,

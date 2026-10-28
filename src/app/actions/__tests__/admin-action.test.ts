@@ -21,6 +21,7 @@ vi.mock("next/headers", () => ({
 vi.mock("next/cache", () => ({ revalidatePath: () => {} }));
 
 import {
+  handleReportAction,
   loginAction,
   logoutAction,
   moderateCommentAction,
@@ -32,6 +33,7 @@ import { signAdmin, verifyAdmin } from "@/lib/admin-auth";
 import { getDb } from "@/lib/db";
 import { createComment, getComment } from "@/lib/repo/comments";
 import { createEntry, getEntry } from "@/lib/repo/entries";
+import { countReports, createReport, REPORT_REASONS } from "@/lib/repo/reports";
 import { findOrCreateSubject, getSubject } from "@/lib/repo/subjects";
 
 let dir: string;
@@ -64,7 +66,7 @@ function loginAsAdmin() {
   jar.set("admin", signAdmin("test-secret", Date.now() + 60_000));
 }
 
-function seedPendingEntry() {
+function seedEntry() {
   const db = getDb();
   const s = findOrCreateSubject(db, { type: "shop", name: "甲店", city: "西安" });
   const e = createEntry(db, {
@@ -148,32 +150,15 @@ describe("loginAction", () => {
 
 describe("moderateEntryAction", () => {
   it("redirects to login and changes nothing without a session", async () => {
-    const { e } = seedPendingEntry();
-    const r = await call(() => moderateEntryAction(fd({ id: e.id, decision: "approve" })));
+    const { e } = seedEntry();
+    const r = await call(() => moderateEntryAction(fd({ id: e.id, decision: "remove", reason: "测试" })));
     expect(r).toEqual({ kind: "redirect", to: "/admin/login" });
-    expect(getEntry(getDb(), e.id)!.status).toBe("pending");
-  });
-
-  it("approves, optionally with an edited body", async () => {
-    loginAsAdmin();
-    const { e } = seedPendingEntry();
-    await call(() => moderateEntryAction(fd({ id: e.id, decision: "approve", body: "编辑后的正文，去掉了情绪化的词，保留事实经过。" })));
-    const after = getEntry(getDb(), e.id)!;
-    expect(after.status).toBe("published");
-    expect(after.body).toBe("编辑后的正文，去掉了情绪化的词，保留事实经过。");
-  });
-
-  it("rejects", async () => {
-    loginAsAdmin();
-    const { e } = seedPendingEntry();
-    await call(() => moderateEntryAction(fd({ id: e.id, decision: "reject" })));
-    expect(getEntry(getDb(), e.id)!.status).toBe("rejected");
+    expect(getEntry(getDb(), e.id)!.status).toBe("published");
   });
 
   it("removes with a reason and refuses removal without one", async () => {
     loginAsAdmin();
-    const { e } = seedPendingEntry();
-    await call(() => moderateEntryAction(fd({ id: e.id, decision: "approve" })));
+    const { e } = seedEntry();
     const r = await call(() => moderateEntryAction(fd({ id: e.id, decision: "remove", reason: "" })));
     expect(r.kind).toBe("redirect");
     if (r.kind === "redirect") expect(r.to).toContain("msg=");
@@ -184,22 +169,19 @@ describe("moderateEntryAction", () => {
     expect(after.removedReason).toBe("当事人申诉成立");
   });
 
-  it("refuses to re-publish a removed entry so the tombstone stays", async () => {
+  it("refuses to remove twice so the tombstone keeps its original reason", async () => {
     loginAsAdmin();
-    const { e } = seedPendingEntry();
-    await call(() => moderateEntryAction(fd({ id: e.id, decision: "approve" })));
+    const { e } = seedEntry();
     await call(() => moderateEntryAction(fd({ id: e.id, decision: "remove", reason: "当事人申诉成立" })));
-    const r = await call(() => moderateEntryAction(fd({ id: e.id, decision: "approve" })));
+    const r = await call(() => moderateEntryAction(fd({ id: e.id, decision: "remove", reason: "另一个原因" })));
     expect(r.kind).toBe("redirect");
     if (r.kind === "redirect") expect(r.to).toContain("msg=");
-    const after = getEntry(getDb(), e.id)!;
-    expect(after.status).toBe("removed");
-    expect(after.removedReason).toBe("当事人申诉成立");
+    expect(getEntry(getDb(), e.id)!.removedReason).toBe("当事人申诉成立");
   });
 
   it("toggles verification", async () => {
     loginAsAdmin();
-    const { e } = seedPendingEntry();
+    const { e } = seedEntry();
     await call(() => toggleVerifiedAction(fd({ id: e.id, verified: "1" })));
     expect(getEntry(getDb(), e.id)!.verified).toBe(true);
     await call(() => toggleVerifiedAction(fd({ id: e.id, verified: "0" })));
@@ -207,12 +189,79 @@ describe("moderateEntryAction", () => {
   });
 });
 
-describe("moderateCommentAction", () => {
-  it("approves and removes comments", async () => {
+describe("handleReportAction", () => {
+  function reported() {
+    const { s, e } = seedEntry();
+    createReport(getDb(), { targetKind: "entry", targetId: e.id, reason: REPORT_REASONS[0], vid: "r1", ipHash: "ip" });
+    createReport(getDb(), { targetKind: "entry", targetId: e.id, reason: REPORT_REASONS[1], vid: "r2", ipHash: "ip" });
+    return { s, e };
+  }
+
+  it("redirects to login and changes nothing without a session", async () => {
+    const { e } = reported();
+    const r = await call(() => handleReportAction(fd({ targetKind: "entry", targetId: e.id, decision: "remove", reason: "辱骂" })));
+    expect(r).toEqual({ kind: "redirect", to: "/admin/login" });
+    expect(getEntry(getDb(), e.id)!.status).toBe("published");
+    expect(countReports(getDb())).toEqual({ open: 2, handled: 0 });
+  });
+
+  it("removes the reported entry with a reason and closes its reports", async () => {
     loginAsAdmin();
-    const { s, e } = seedPendingEntry();
+    const { e } = reported();
+    const r = await call(() => handleReportAction(fd({ targetKind: "entry", targetId: e.id, decision: "remove", reason: "泄露联系方式" })));
+    expect(r).toEqual({ kind: "redirect", to: "/admin" });
+    const after = getEntry(getDb(), e.id)!;
+    expect(after.status).toBe("removed");
+    expect(after.removedReason).toBe("泄露联系方式");
+    expect(countReports(getDb())).toEqual({ open: 0, handled: 2 });
+  });
+
+  it("dismisses reports and leaves the entry up", async () => {
+    loginAsAdmin();
+    const { e } = reported();
+    await call(() => handleReportAction(fd({ targetKind: "entry", targetId: e.id, decision: "dismiss" })));
+    expect(getEntry(getDb(), e.id)!.status).toBe("published");
+    expect(countReports(getDb())).toEqual({ open: 0, handled: 2 });
+  });
+
+  it("keeps reports open when removal lacks a reason", async () => {
+    loginAsAdmin();
+    const { e } = reported();
+    const r = await call(() => handleReportAction(fd({ targetKind: "entry", targetId: e.id, decision: "remove", reason: "" })));
+    expect(r.kind).toBe("redirect");
+    if (r.kind === "redirect") expect(r.to).toContain("msg=");
+    expect(getEntry(getDb(), e.id)!.status).toBe("published");
+    expect(countReports(getDb())).toEqual({ open: 2, handled: 0 });
+  });
+
+  it("removes a reported comment", async () => {
+    loginAsAdmin();
+    const { s, e } = seedEntry();
+    const c = createComment(getDb(), { entryId: e.id, subjectId: s.id, kind: "comment", body: "去死吧", vid: "w".repeat(32), ipHash: "ip" });
+    createReport(getDb(), { targetKind: "comment", targetId: c.id, reason: REPORT_REASONS[1], vid: "r1", ipHash: "ip" });
+    await call(() => handleReportAction(fd({ targetKind: "comment", targetId: c.id, decision: "remove", reason: "辱骂" })));
+    expect(getComment(getDb(), c.id)!.status).toBe("removed");
+    expect(countReports(getDb())).toEqual({ open: 0, handled: 1 });
+  });
+});
+
+describe("moderateCommentAction", () => {
+  it("returns to the public page it was called from so the admin can remove a comment in place", async () => {
+    loginAsAdmin();
+    const { s, e } = seedEntry();
+    const c = createComment(getDb(), { entryId: e.id, subjectId: s.id, kind: "comment", body: "123", vid: "w".repeat(32), ipHash: "ip" });
+    const r = await call(() => moderateCommentAction(fd({ id: c.id, decision: "remove", reason: "无意义内容", returnTo: `/e/${e.id}` })));
+    expect(r).toEqual({ kind: "redirect", to: `/e/${e.id}` });
+    expect(getComment(getDb(), c.id)!.status).toBe("removed");
+    const bad = await call(() => moderateCommentAction(fd({ id: c.id, decision: "remove", reason: "x", returnTo: "//evil.example" })));
+    expect(bad.kind).toBe("redirect");
+    if (bad.kind === "redirect") expect(bad.to.startsWith("/admin")).toBe(true);
+  });
+
+  it("removes a comment with a reason", async () => {
+    loginAsAdmin();
+    const { s, e } = seedEntry();
     const c = createComment(getDb(), { entryId: e.id, subjectId: s.id, kind: "comment", body: "我也遇到过", vid: "w".repeat(32), ipHash: "ip" });
-    await call(() => moderateCommentAction(fd({ id: c.id, decision: "approve" })));
     expect(getComment(getDb(), c.id)!.status).toBe("published");
     await call(() => moderateCommentAction(fd({ id: c.id, decision: "remove", reason: "辱骂" })));
     expect(getComment(getDb(), c.id)!.status).toBe("removed");
@@ -222,7 +271,7 @@ describe("moderateCommentAction", () => {
 describe("updateSubjectAction", () => {
   it("renames and sets aliases", async () => {
     loginAsAdmin();
-    const { s } = seedPendingEntry();
+    const { s } = seedEntry();
     await call(() => updateSubjectAction(fd({ id: s.id, name: "示例剧本杀", city: "西安", aliases: "甲店, 甲店店" })));
     const after = getSubject(getDb(), s.id)!;
     expect(after.name).toBe("示例剧本杀");
