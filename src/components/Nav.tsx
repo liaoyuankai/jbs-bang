@@ -9,19 +9,16 @@ export function Nav() {
           {config.siteName}
         </Link>
         <nav className="flex items-center gap-1 text-[15px]">
-          <Link href="/?list=red" className="px-2 py-2 text-rose-700 hover:underline">
-            红榜
+          <Link href="/" className="px-2 py-2 hover:underline">
+            榜单
           </Link>
-          <Link href="/?list=black" className="px-2 py-2 text-stone-800 hover:underline">
-            黑榜
+          <Link href="/rank" className="px-2 py-2 hover:underline">
+            热度
           </Link>
           <Link href="/search" className="px-2 py-2 hover:underline">
             搜索
           </Link>
-          <Link
-            href="/submit"
-            className="ml-1 rounded-md bg-stone-900 px-3 py-1.5 text-white hover:bg-stone-700"
-          >
+          <Link href="/submit" className="ml-1 rounded-md bg-stone-900 px-3 py-1.5 text-white hover:bg-stone-700">
             投稿
           </Link>
         </nav>

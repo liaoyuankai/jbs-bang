@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { setCity } from "@/app/actions/city";
+import { Chip, ChipRow } from "@/components/Chip";
 import { CitySelect } from "@/components/CitySelect";
 import { EntryCard } from "@/components/EntryCard";
 import { getDb } from "@/lib/db";
@@ -21,10 +22,6 @@ function listHref(p: { list: ListKind; type?: SubjectType; page?: number }): str
   if (p.page && p.page > 1) q.set("page", String(p.page));
   return `/?${q.toString()}`;
 }
-
-const CHIP = "whitespace-nowrap rounded-full border px-3 py-1.5";
-const CHIP_ON = `${CHIP} border-stone-900 bg-stone-900 text-white`;
-const CHIP_OFF = `${CHIP} border-stone-300 bg-white text-stone-700`;
 
 export default async function Home({
   searchParams,
@@ -68,16 +65,16 @@ export default async function Home({
         </form>
       </div>
 
-      <div className="-mx-4 flex gap-2 overflow-x-auto px-4 text-sm [scrollbar-width:none]">
-        <Link href={listHref({ list })} className={type ? CHIP_OFF : CHIP_ON}>
+      <ChipRow>
+        <Chip href={listHref({ list })} active={!type}>
           全部 {total}
-        </Link>
+        </Chip>
         {SUBJECT_TYPES.map((t) => (
-          <Link key={t} href={listHref({ list, type: t })} className={type === t ? CHIP_ON : CHIP_OFF}>
+          <Chip key={t} href={listHref({ list, type: t })} active={type === t}>
             {typeLabel(t)} {typeCounts[t]}
-          </Link>
+          </Chip>
         ))}
-      </div>
+      </ChipRow>
 
       {shown.length === 0 ? (
         <div className="rounded-lg border border-dashed border-stone-300 bg-white p-8 text-center text-stone-500">

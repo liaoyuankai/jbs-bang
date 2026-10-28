@@ -66,6 +66,9 @@ describe("subjects", () => {
     expect(searchSubjects(db, "甲店").map((x) => x.id)).toContain(s.id);
     expect(searchSubjects(db, "剧本杀").map((x) => x.id)).toContain(s.id);
     expect(searchSubjects(db, "不存在")).toHaveLength(0);
+    findOrCreateSubject(db, { type: "dm", name: "甲店阿壬", city: "西安", shopName: "甲店" });
+    expect(searchSubjects(db, "甲店", { type: "dm" }).map((x) => x.name)).toEqual(["甲店阿壬"]);
+    expect(searchSubjects(db, "甲店", { type: "player" })).toHaveLength(0);
     expect(getSubject(db, s.id)?.aliases).toEqual(["示例剧本杀"]);
   });
 
