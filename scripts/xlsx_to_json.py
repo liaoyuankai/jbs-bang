@@ -10,9 +10,11 @@ Rows are grouped by subject. The first substantive cell becomes the entry body
 
 The 红榜 sheet mixes DMs and shops; a name that matches a shop known from the shop
 sheets is imported as a shop, "店名 DM名" is split into shop + DM, anything else is a DM.
+Earlier snapshots of the sheet use three columns (店名 | DM名 | 评论): a short name-like
+second cell followed by a comment is read as shop + DM.
 
-清洗总表 is the already-consolidated black list (店家 + 玩家). Imported as pending so
-the operator reviews every black entry in /admin before it goes public.
+清洗总表 is the already-consolidated black list (店家 + 玩家). Published on import like
+everything else (the site is post-moderated; takedowns happen via reports).
 
 Sheets 黑榜 / 店家黑榜 / 玩家黑榜 are skipped: 黑榜 was wiped, the other two are
 consolidated in 清洗总表 (店家黑榜 is still read for shop names).
@@ -26,6 +28,7 @@ import openpyxl
 
 LOW_VALUE = re.compile(r"^(点了|同意|赞同|支持|是的|确实|没错|附议|顶|对|同|\+1|1)+$")
 PUNCT = re.compile(r"[\s!！。.、，,~～?？]+")
+SENTENCE = re.compile(r"[\s，。！？,.!?；;：:…]")
 MIN_BODY = 10
 MAX_NAME = 12
 CITY = "西安"
@@ -47,6 +50,20 @@ def norm(name: str) -> str:
     if n.endswith("店") and len(n) > 1:
         n = n[:-1]
     return n
+
+
+MAX_DM_NAME = 8
+SENTENCE_WORDS = re.compile(r"[的我你是了啊呀]")
+
+
+def name_like(text: str) -> bool:
+    """A DM name in its own column: short, no sentence punctuation or function words, not a +1."""
+    return (
+        0 < len(text) <= MAX_DM_NAME
+        and not SENTENCE.search(text)
+        and not SENTENCE_WORDS.search(text)
+        and not is_low_value(text)
+    )
 
 
 def split_cells(cells):
@@ -85,15 +102,21 @@ def red_sheet(ws, default_type, known_shops=frozenset(), split_dm_name=False):
             skipped.append(("name-too-long", name))
             continue
         subject_type, shop_name = default_type, None
+        rest = list(row[1:])
         if default_type == "dm":
             parts = name.split()
-            if len(parts) >= 2 and split_dm_name:
+            second = cell(rest[0]) if rest else ""
+            third = cell(rest[1]) if len(rest) > 1 else ""
+            if split_dm_name and name_like(second) and len(third) >= 2:
+                # three-column layout: 店名 | DM名 | 评论
+                shop_name, name, rest = name, second, rest[1:]
+            elif len(parts) >= 2 and split_dm_name:
                 shop_name, name = parts[0], " ".join(parts[1:])
             elif norm(name) in known_shops:
                 subject_type = "shop"
         key = (subject_type, norm(name), norm(shop_name) if shop_name else None)
         g = groups.setdefault(key, {"type": subject_type, "name": name, "shopName": shop_name, "cells": []})
-        g["cells"].extend(row[1:])
+        g["cells"].extend(rest)
     items = []
     for g in groups.values():
         substantive, endorsements = split_cells(g["cells"])
@@ -156,7 +179,7 @@ def black_sheet(ws):
                 "body": body,
                 "comments": comments,
                 "endorsements": endorsements,
-                "status": "pending",
+                "status": "published",
             }
         )
     return items, skipped
