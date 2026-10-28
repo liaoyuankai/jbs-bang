@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import { BackTrap } from "@/components/BackTrap";
 import { Footer, Nav } from "@/components/Nav";
 import { SubmitFab } from "@/components/SubmitFab";
 import { WelcomeNotice } from "@/components/WelcomeNotice";
@@ -27,6 +28,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <main className="mx-auto max-w-2xl px-4 py-4 sm:py-5">{children}</main>
         <Footer />
         <SubmitFab />
+        <BackTrap />
         <WelcomeNotice />
       </body>
     </html>

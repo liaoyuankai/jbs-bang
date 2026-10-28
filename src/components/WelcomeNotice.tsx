@@ -7,6 +7,7 @@ import { siteVoteAction, siteVoteStatusAction, type SiteVoteState } from "@/app/
 import type { SiteVoteChoice } from "@/lib/repo/site-votes";
 
 const SEEN_KEY = "jbs-welcome-seen";
+const DIALOG_FLAG = "__jbsDialog";
 
 /** The notice is for visitors; the admin pages never show it. */
 export function showWelcomeNotice(pathname: string): boolean {
@@ -28,6 +29,11 @@ export function WelcomeNotice() {
       // storage blocked: still show it, just once per page load
     }
     setOpen(true);
+    // a history record for the dialog, so the webview's back button closes it instead of leaving the site
+    if (window.history.state?.[DIALOG_FLAG] !== "welcome") {
+      const { __jbsTrap: _trap, ...rest } = (window.history.state ?? {}) as Record<string, unknown>;
+      window.history.pushState({ ...rest, [DIALOG_FLAG]: "welcome" }, "", window.location.href);
+    }
     siteVoteStatusAction().then(setVote, () => {});
     // decided once per page load; later navigations within the visit keep it closed
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -35,14 +41,30 @@ export function WelcomeNotice() {
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && close();
+    const onPop = () => {
+      markSeen();
+      setOpen(false);
+    };
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener("popstate", onPop);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("popstate", onPop);
+    };
   }, [open]);
 
-  function close() {
+  function markSeen() {
     try {
       localStorage.setItem(SEEN_KEY, "1");
     } catch {}
+  }
+
+  function close() {
+    markSeen();
+    if (window.history.state?.[DIALOG_FLAG] === "welcome") {
+      window.history.back(); // pops our record; the popstate handler closes the dialog
+      return;
+    }
     setOpen(false);
   }
 
