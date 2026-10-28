@@ -1,4 +1,15 @@
+{
+	# 只用 TCP 上的 HTTP/1.1 与 HTTP/2：国内运营商常掐 UDP，iOS 碰到被掐的 QUIC 容易干等成白屏。
+	servers {
+		protocols h1 h2
+	}
+}
+
 {$DOMAIN} {
+	log {
+		output stdout
+		format json
+	}
 	encode gzip
 	request_body {
 		max_size 30MB
