@@ -1,0 +1,17 @@
+# 用本机构建好的 Next standalone 产物打镜像；服务器上不跑 npm、不跑 next build。
+# 构建上下文由 deploy/ship.sh 组装：standalone/ static/ public/ scripts/backup.mjs
+FROM node:26-bookworm-slim
+WORKDIR /app
+ENV NODE_ENV=production \
+    NEXT_TELEMETRY_DISABLED=1 \
+    DATA_DIR=/data \
+    PORT=3000 \
+    HOSTNAME=0.0.0.0
+COPY standalone/ ./
+COPY static/ ./.next/static
+COPY public/ ./public
+COPY scripts/backup.mjs ./scripts/backup.mjs
+RUN mkdir -p /data
+VOLUME ["/data"]
+EXPOSE 3000
+CMD ["node", "server.js"]

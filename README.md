@@ -30,12 +30,12 @@ bash deploy/deploy.sh
 
 `scp` 会连同 `data/` 一起传上去。本机的 `data/app.db` 已经导入了旧表格的数据，服务器直接用它。如果你不想带本机数据，传之前删掉 `data/` 即可，服务器会建一个空库。
 
-**内存不到 2G 的 VPS**（在服务器上构建会被杀掉）改走「本机构建、推镜像」：本机装好 Docker Desktop，然后
+**内存不到 2G 的 VPS，或本机拉 Docker Hub 很慢**（两者在国内都很常见）改走「本机构建产物、服务器秒级打镜像」，本机只要装了 Node：
 
 ```bash
-# 第一次：先把服务器装好 Docker 并生成 .env（只需一次）
+# 第一次：服务器装 Docker、传项目、生成 .env（只需一次）
 ssh root@IP 'curl -fsSL https://get.docker.com | sh && mkdir -p /opt/jbs-bang'
-JBS_HOST=root@IP bash deploy/ship.sh        # 本机构建镜像 → 上传 → 服务器启动；第一次会停下来让你填 .env
+JBS_HOST=root@IP bash deploy/ship.sh        # 第一次会停在「请先填好 .env」
 ssh root@IP 'nano /opt/jbs-bang/.env'       # 填 DOMAIN、ADMIN_PASSWORD
 JBS_HOST=root@IP bash deploy/push-data.sh   # 第一次把本机 data/ 推上去（服务器已有数据库时会拒绝）
 JBS_HOST=root@IP bash deploy/ship.sh        # 再跑一次即上线；以后改代码重新部署也是这一条
@@ -48,7 +48,7 @@ JBS_HOST=root@IP bash deploy/ship.sh        # 再跑一次即上线；以后改�
 | 要做什么 | 命令 |
 |---|---|
 | 看日志 | `docker compose logs -f app` |
-| 改代码后重新部署 | 服务器上构建：`bash deploy/deploy.sh`；本机构建推镜像：`JBS_HOST=root@IP bash deploy/ship.sh` |
+| 改代码后重新部署 | 本机：`JBS_HOST=root@IP bash deploy/ship.sh`（推荐）；或服务器上自己构建：`bash deploy/deploy.sh` |
 | 手动备份 | `bash deploy/backup.sh` |
 | 每日自动备份 | `crontab -e` 加一行：`0 4 * * * cd /opt/jbs-bang && mkdir -p data/backups && bash deploy/backup.sh >> data/backups/backup.log 2>&1` |
 | 异地备份 | 装 `rclone`，配好远端，然后 `BACKUP_REMOTE=远端名:桶名 bash deploy/backup.sh` |
