@@ -174,6 +174,16 @@ describe("entries", () => {
     expect(countEntriesByType(db, { city: "西安", list: "red" })).toEqual({ shop: 0, dm: 0, player: 0 });
   });
 
+  it("lets imported history keep a body shorter than the web minimum, and edits it the same way", () => {
+    const s = shop();
+    expect(() => black(s.id, "v1", { body: "小乙" })).toThrow(/正文/);
+    const e = black(s.id, "v1", { body: "小乙", source: "import" });
+    expect(e.body).toBe("小乙");
+    expect(() => updateEntryBody(db, e.id, "小丙")).toThrow(/正文/);
+    expect(updateEntryBody(db, e.id, "小丙", { allowShort: true }).body).toBe("小丙");
+    expect(() => black(s.id, "v2", { body: "", source: "import" })).toThrow(/正文/);
+  });
+
   it("keeps a removed entry on record with reason and time", () => {
     const s = shop();
     const e = black(s.id, "v1");

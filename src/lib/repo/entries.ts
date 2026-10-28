@@ -37,11 +37,12 @@ export function hashBody(body: string): string {
   return createHash("sha256").update(body).digest("hex");
 }
 
-function validateBody(body: string): string {
+/** Web submissions need BODY_MIN characters; imported history keeps whatever the sheet cell held. */
+function validateBody(body: string, min: number = BODY_MIN): string {
   const b = body.trim();
   const len = [...b].length;
-  if (len < BODY_MIN || len > BODY_MAX) {
-    throw new Error(`正文需在 ${BODY_MIN} 到 ${BODY_MAX} 字之间`);
+  if (len < Math.max(1, min) || len > BODY_MAX) {
+    throw new Error(min > 1 ? `正文需在 ${min} 到 ${BODY_MAX} 字之间` : `正文不能为空，且最多 ${BODY_MAX} 字`);
   }
   return scrubPII(b);
 }
@@ -53,10 +54,10 @@ export function createEntry(db: DatabaseSync, input: NewEntry): Entry {
   if (!CATEGORIES[subject.type][input.list].includes(input.category)) {
     throw new Error("分类不正确");
   }
-  const body = validateBody(input.body);
+  const source: Source = input.source ?? "web";
+  const body = validateBody(input.body, source === "import" ? 1 : BODY_MIN);
   const id = newId();
   const status: Status = input.status ?? "published";
-  const source: Source = input.source ?? "web";
   const occurredAt = input.occurredAt && /^\d{4}-\d{2}$/.test(input.occurredAt) ? input.occurredAt : null;
   const bodyHash = hashBody(body);
   db.prepare(
@@ -174,10 +175,10 @@ export function setVerified(db: DatabaseSync, id: string, verified: boolean): En
   return getEntry(db, id)!;
 }
 
-export function updateEntryBody(db: DatabaseSync, id: string, body: string): Entry {
+export function updateEntryBody(db: DatabaseSync, id: string, body: string, opts: { allowShort?: boolean } = {}): Entry {
   const cur = getEntry(db, id);
   if (!cur) throw new Error("条目不存在");
-  const clean = validateBody(body);
+  const clean = validateBody(body, opts.allowShort ? 1 : BODY_MIN);
   const bodyHash = hashBody(clean);
   db.prepare("UPDATE entries SET body = ?, body_hash = ? WHERE id = ?").run(clean, bodyHash, id);
   appendEvent(db, "entry.edited", id, { previousHash: cur.bodyHash, bodyHash });

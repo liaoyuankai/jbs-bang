@@ -4,8 +4,8 @@ Usage: python -P scripts/xlsx_to_json.py <xlsx> <out.json>
 
 Red sheets (红榜 / 店家红榜 / 玩家红榜): column 0 is the subject, later columns are
 comments; the same subject often appears on several rows, one comment per row.
-Rows are grouped by subject. The first substantive cell becomes the entry body
-(merged with following cells until it reaches 10 chars), the rest become comments,
+Rows are grouped by subject. Every cell is its own "floor": the first substantive
+cell becomes the entry body (however short), each later cell becomes one comment,
 "+1"-style cells become endorsements. Published on import.
 
 The 红榜 sheet mixes DMs and shops; a name that matches a shop known from the shop
@@ -16,8 +16,12 @@ second cell followed by a comment is read as shop + DM.
 清洗总表 is the already-consolidated black list (店家 + 玩家). Published on import like
 everything else (the site is post-moderated; takedowns happen via reports).
 
-Sheets 黑榜 / 店家黑榜 / 玩家黑榜 are skipped: 黑榜 was wiped, the other two are
-consolidated in 清洗总表 (店家黑榜 is still read for shop names).
+黑榜 is the DM black list. Earlier snapshots are one column of names (a name listed
+several times counts as several people); later snapshots are 店名 | dm plus chatter.
+Names are matched against the known shops to split 店名+DM名; rows without any
+reason text get a fixed placeholder body saying the sheet gave none.
+
+店家黑榜 / 玩家黑榜 are consolidated in 清洗总表 (店家黑榜 is still read for shop names).
 """
 import json
 import re
@@ -80,15 +84,83 @@ def split_cells(cells):
 
 
 def make_body(substantive):
+    """Each cell is one floor: first cell = body, the rest = comments. No merging."""
     if not substantive:
         return None, []
-    body = substantive[0]
-    rest = substantive[1:]
-    while len(body) < MIN_BODY and rest:
-        body = f"{body}；{rest.pop(0)}"
-    if len(body) < MIN_BODY:
-        return None, []
-    return body, rest
+    return substantive[0], substantive[1:]
+
+
+RANT = re.compile(r"删|控评|瓜|解码|明天|傻|黄|网站|备份|急|哈哈|想看|无语|别发|发生什么|怎么全|手机问题|沃德|何意味|圈外|玩不起|短一截|别点|赚钱|牛逼坏|gg|乱填|还有吗|有没|野d|夫妻车|^[?？。]+$")
+DM_BLACK_PLACEHOLDER = "原表格「DM 黑榜」中被人列出，表里没有写事由。"
+RAW_SHOPS: list = []
+
+
+def split_shop_dm(name: str, known_shops):
+    """'xa己店阿丁' -> ('阿丁', 'xa己店'); '戊店' -> (None, '戊店') meaning the shop itself; else (name, None)."""
+    n = re.sub(r"\s+", "", name.lower())
+    if norm(name) in known_shops:
+        return None, name
+    # 前xx / 原xx / 现xx = the shop itself, mentioned as former or current workplace
+    if len(name) > 1 and name[0] in "前原现新" and norm(name[1:]) in known_shops:
+        return None, name[1:]
+    for shop in sorted(RAW_SHOPS, key=len, reverse=True):
+        sl = re.sub(r"\s+", "", shop.lower())
+        if len(sl) < 2 or len(n) <= len(sl):
+            continue
+        if n.startswith(sl):
+            return name[len(shop):].strip(" /／-—:："), shop
+        if n.endswith(sl):
+            return name[: len(name) - len(shop)].strip(" /／-—:："), shop
+    return name, None
+
+
+def dm_black_sheet(ws, known_shops):
+    groups = OrderedDict()
+    skipped = []
+    for row in ws.iter_rows(values_only=True):
+        cells = [cell(c) for c in row if cell(c)]
+        if not cells:
+            continue
+        name = cells[0]
+        if name in ("店名4", "店名", "dm", "DM"):
+            continue
+        if len(name) > MAX_NAME or RANT.search(name):
+            skipped.append(("rant-or-long", name))
+            continue
+        rest = cells[1:]
+        dm, shop = split_shop_dm(name, known_shops)
+        if rest and name_like(rest[0]) and not RANT.search(rest[0]):
+            # 店名 | dm 层
+            dm, shop, rest = rest[0], name, rest[1:]
+        if dm is None:
+            key, item = ("shop", norm(shop), None), {"type": "shop", "name": shop, "shopName": None}
+        else:
+            key, item = ("dm", norm(dm), norm(shop) if shop else None), {"type": "dm", "name": dm, "shopName": shop}
+        g = groups.setdefault(key, {**item, "floors": [], "mentions": 0})
+        g["mentions"] += 1
+        g["floors"].extend(c for c in rest if not RANT.search(c))
+    items = []
+    for g in groups.values():
+        substantive, endorsements = split_cells(g["floors"])
+        body, comments = make_body(substantive)
+        if body is None:
+            body = DM_BLACK_PLACEHOLDER
+        items.append(
+            {
+                "type": g["type"],
+                "list": "black",
+                "name": g["name"],
+                "city": CITY,
+                "shopName": g["shopName"],
+                "category": "其他",
+                "body": body,
+                "comments": comments,
+                "endorsements": endorsements + g["mentions"] - 1,
+                "floors": [body, *comments],
+                "status": "published",
+            }
+        )
+    return items, skipped
 
 
 def red_sheet(ws, default_type, known_shops=frozenset(), split_dm_name=False):
@@ -135,6 +207,7 @@ def red_sheet(ws, default_type, known_shops=frozenset(), split_dm_name=False):
                 "body": body,
                 "comments": comments,
                 "endorsements": endorsements,
+                "floors": substantive,
                 "status": "published",
             }
         )
@@ -164,7 +237,8 @@ def black_sheet(ws):
         extra = cell(row[idx["补充评论"]])
         extra_cells = [p.strip() for p in extra.split(" / ")] if extra else []
         substantive, endorsements = split_cells(extra_cells)
-        body, comments = make_body(([reason] if reason else []) + substantive)
+        floors = ([reason] if reason else []) + substantive
+        body, comments = make_body(floors)
         if body is None:
             skipped.append(("no-body", name, reason))
             continue
@@ -179,6 +253,7 @@ def black_sheet(ws):
                 "body": body,
                 "comments": comments,
                 "endorsements": endorsements,
+                "floors": floors,
                 "status": "published",
             }
         )
@@ -193,6 +268,8 @@ def shop_names(wb):
                 n = cell(row[0] if row else None)
                 if n and len(n) <= MAX_NAME:
                     names.add(norm(n))
+                    if n not in RAW_SHOPS:
+                        RAW_SHOPS.append(n)
     if "清洗总表" in wb.sheetnames:
         rows = list(wb["清洗总表"].iter_rows(values_only=True))
         header = [cell(c) for c in rows[0]]
@@ -214,9 +291,22 @@ def main(src, out):
         "店家红榜": lambda ws: red_sheet(ws, "shop"),
         "玩家红榜": lambda ws: red_sheet(ws, "player"),
         "红榜": lambda ws: red_sheet(ws, "dm", known_shops=shops, split_dm_name=True),
+        "黑榜": lambda ws: dm_black_sheet(ws, shops),
         "清洗总表": black_sheet,
     }
     for title, fn in plan.items():
+        if title == "黑榜":
+            # every shop the red sheets revealed (as a DM's shop, or as a shop subject) helps split 店名+DM名
+            more = set()
+            for it in items:
+                if it.get("shopName"):
+                    more.add(it["shopName"])
+                if it["type"] == "shop":
+                    more.add(it["name"])
+            for n in sorted(more):
+                if n not in RAW_SHOPS:
+                    RAW_SHOPS.append(n)
+            shops = frozenset(shops | {norm(n) for n in more})
         if title not in wb.sheetnames:
             print(f"missing sheet: {title}")
             continue
