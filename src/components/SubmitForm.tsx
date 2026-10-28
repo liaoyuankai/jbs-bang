@@ -161,7 +161,10 @@ export function SubmitForm({
           <div className="mt-3">
             <input
               value={query}
-              onChange={(e) => setQuery(e.target.value)}
+              onChange={(e) => {
+                setQuery(e.target.value);
+                setFormError(null);
+              }}
               placeholder={{ shop: "搜店名", dm: "搜 DM 昵称", player: "搜玩家昵称" }[type]}
               className="w-full rounded-md border border-stone-300 bg-white px-3 py-2.5"
             />
@@ -235,7 +238,10 @@ export function SubmitForm({
           maxLength={2000}
           rows={6}
           value={body}
-          onChange={(e) => setBody(e.target.value)}
+          onChange={(e) => {
+            setBody(e.target.value);
+            setFormError(null);
+          }}
           placeholder="写具体经过：什么时候、哪个本、谁做了什么。不要写手机号、微信号，系统会自动隐去。"
           className="mt-2 w-full rounded-md border border-stone-300 bg-white px-3 py-2.5"
         />
