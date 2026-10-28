@@ -33,6 +33,7 @@ export function SubmitForm({
   const [creating, setCreating] = useState(false);
   const [body, setBody] = useState("");
   const [fileError, setFileError] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
 
   useEffect(() => {
     if (selected || creating || query.trim().length === 0) {
@@ -59,9 +60,34 @@ export function SubmitForm({
 
   const categories = CATEGORIES[type][list];
   const bodyLen = [...body].length;
+  const typedName = query.trim();
+  // typing a name is enough: when nothing is picked, the typed name becomes a new subject on submit
+  const willCreateFromQuery = !selected && !creating && typedName.length > 0;
+
+  function validate(): string | null {
+    if (!selected && !creating && !typedName) return "第 1 步还没填：写上店名、DM 或玩家的名字";
+    if (bodyLen < 10) return `第 3 步正文至少写 10 个字，现在 ${bodyLen} 个`;
+    if (bodyLen > 2000) return "正文最多 2000 字";
+    if (fileError) return fileError;
+    return null;
+  }
 
   return (
-    <form action={formAction} className="space-y-5" encType="multipart/form-data">
+    <form
+      action={formAction}
+      className="space-y-5"
+      encType="multipart/form-data"
+      noValidate
+      onSubmit={(e) => {
+        const err = validate();
+        if (err) {
+          e.preventDefault();
+          setFormError(err);
+        } else {
+          setFormError(null);
+        }
+      }}
+    >
       <fieldset>
         <legend className="text-sm font-semibold">1. 这是关于谁的</legend>
         <div className="mt-2 flex gap-2">
@@ -156,8 +182,18 @@ export function SubmitForm({
                 ))}
               </ul>
             )}
+            {willCreateFromQuery && (
+              <>
+                <input type="hidden" name="name" value={typedName} />
+                <input type="hidden" name="city" value={city} />
+                <p className="mt-2 text-xs text-stone-500">
+                  {results.length > 0 ? "从上面点选，或者不选、直接往下填，" : "没搜到也没关系，直接往下填，"}
+                  发布时会自动新建「{typedName}」（{city}）
+                </p>
+              </>
+            )}
             <button type="button" className="mt-2 py-1 text-[15px] underline" onClick={() => setCreating(true)}>
-              没找到？新建一个
+              {type === "dm" ? "新建并填所属店 / 城市" : "新建并填城市"}
             </button>
           </div>
         )}
@@ -196,7 +232,6 @@ export function SubmitForm({
         <textarea
           name="body"
           required
-          minLength={10}
           maxLength={2000}
           rows={6}
           value={body}
@@ -234,11 +269,13 @@ export function SubmitForm({
         {fileError && <p className="mt-1 text-sm text-red-700">{fileError}</p>}
       </fieldset>
 
-      {state.error && <p className="rounded bg-red-50 px-3 py-2 text-sm text-red-700">{state.error}</p>}
+      {(formError || state.error) && (
+        <p className="rounded bg-red-50 px-3 py-2 text-sm text-red-700">{formError ?? state.error}</p>
+      )}
 
       <button
         type="submit"
-        disabled={pending || !!fileError || (!selected && !creating)}
+        disabled={pending}
         className="w-full rounded-md bg-stone-900 px-4 py-3 text-[17px] text-white disabled:opacity-40"
       >
         {pending ? "发布中…" : "发布"}
