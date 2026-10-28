@@ -13,7 +13,7 @@ export function showWelcomeNotice(pathname: string): boolean {
   return !(pathname === "/admin" || pathname.startsWith("/admin/"));
 }
 
-/** Shown once per visit (browser session): what the site is, what can't be undone, and a 支持 / 不支持 vote. */
+/** Shown once per browser (localStorage): what the site is, what can't be undone, and a 支持 / 不支持 vote. */
 export function WelcomeNotice() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
@@ -23,7 +23,7 @@ export function WelcomeNotice() {
   useEffect(() => {
     if (!showWelcomeNotice(pathname)) return;
     try {
-      if (sessionStorage.getItem(SEEN_KEY)) return;
+      if (localStorage.getItem(SEEN_KEY)) return;
     } catch {
       // storage blocked: still show it, just once per page load
     }
@@ -41,7 +41,7 @@ export function WelcomeNotice() {
 
   function close() {
     try {
-      sessionStorage.setItem(SEEN_KEY, "1");
+      localStorage.setItem(SEEN_KEY, "1");
     } catch {}
     setOpen(false);
   }
