@@ -116,6 +116,14 @@ describe("createEntryAction", () => {
     expect(e.subject.name).not.toContain("abc_12345");
   });
 
+  it("stores nothing about the submitter even when a contact field is posted", async () => {
+    const r = await submit(form({ contact: "13800138000" }));
+    expect(r.kind).toBe("redirect");
+    const row = getDb().prepare("SELECT * FROM entries").get() as Record<string, unknown>;
+    expect(row.contact ?? null).toBeNull();
+    expect(JSON.stringify(row)).not.toContain("13800138000");
+  });
+
   it("creates no subject and burns no rate slot when the category is wrong", async () => {
     const r = await submit(form({ name: "不该出现的店", category: "开本摆烂" }));
     expect(r.kind).toBe("state");

@@ -25,7 +25,6 @@ export async function createEntryAction(_prev: ActionState, formData: FormData):
     const category = str(formData, "category");
     const body = str(formData, "body");
     const occurredAt = str(formData, "occurredAt") || null;
-    const contact = str(formData, "contact") || null;
     const subjectId = str(formData, "subjectId");
     const files = formData.getAll("evidence").filter((f): f is File => f instanceof File);
 
@@ -59,7 +58,7 @@ export async function createEntryAction(_prev: ActionState, formData: FormData):
             city: str(formData, "city") || config.defaultCity,
             shopName: str(formData, "shopName") || null,
           });
-      const entry = createEntry(db, { subjectId: subject.id, list, category, body, vid, ipHash: ip, occurredAt, contact });
+      const entry = createEntry(db, { subjectId: subject.id, list, category, body, vid, ipHash: ip, occurredAt });
       const n = writeEvidence(config.dataDir, entry.id, evidence);
       if (n > 0) setEvidenceCount(db, entry.id, n);
       entryId = entry.id;

@@ -41,9 +41,6 @@ export default async function AdminQueuePage({ searchParams }: { searchParams: P
                 {e.occurredAt && ` · 发生于 ${e.occurredAt}`}
               </span>
             </div>
-            {e.contact && (
-              <p className="mt-2 rounded bg-amber-50 px-2 py-1 text-xs text-amber-900">投稿人联系方式（仅你可见）：{e.contact}</p>
-            )}
             {e.evidenceCount > 0 && (
               <div className="mt-2 flex flex-wrap gap-2">
                 {Array.from({ length: e.evidenceCount }, (_, i) => (

@@ -40,7 +40,7 @@
 ## 领域模型
 
 - subject：店家 shop / DM dm / 玩家 player。字段：type, name, city, shop_name（DM 所属店，可空）, aliases。
-- entry：一条红榜或黑榜。字段：subject_id, list(red|black), category, body, body_hash, occurred_at(YYYY-MM，可空), evidence_count, contact（仅审核可见）, vid（访客匿名 id）, ip_hash, status(pending|published|rejected|removed), source(web|import), verified(0|1), removed_reason, removed_at。
+- entry：一条红榜或黑榜。字段：subject_id, list(red|black), category, body, body_hash, occurred_at(YYYY-MM，可空), evidence_count, vid（访客匿名 id）, ip_hash, status(pending|published|rejected|removed), source(web|import), verified(0|1), removed_reason, removed_at。
 - comment：挂在 entry 上的评论，或挂在 subject 上的当事人回应 kind(comment|response)。同样有 status。
 - endorsement：(entry_id, vid) 唯一，即「点了 / 我也遇到过」。
 - event：seq, kind, ref_id, payload, prev_hash, hash, created_at。每次创建/审核/下架都追加一条。

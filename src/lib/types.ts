@@ -22,7 +22,6 @@ export type Entry = {
   bodyHash: string;
   occurredAt: string | null;
   evidenceCount: number;
-  contact: string | null;
   vid: string;
   ipHash: string;
   status: Status;
@@ -84,7 +83,6 @@ export function rowToEntry(r: Record<string, unknown>): Entry {
     bodyHash: r.body_hash as string,
     occurredAt: (r.occurred_at as string | null) ?? null,
     evidenceCount: Number(r.evidence_count ?? 0),
-    contact: (r.contact as string | null) ?? null,
     vid: r.vid as string,
     ipHash: r.ip_hash as string,
     status: r.status as Status,

@@ -21,7 +21,6 @@ CREATE TABLE IF NOT EXISTS entries (
   body_hash      TEXT NOT NULL,
   occurred_at    TEXT,
   evidence_count INTEGER NOT NULL DEFAULT 0,
-  contact        TEXT,
   vid            TEXT NOT NULL,
   ip_hash        TEXT NOT NULL,
   status         TEXT NOT NULL CHECK (status IN ('pending','published','rejected','removed')),

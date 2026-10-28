@@ -29,7 +29,6 @@ export type NewEntry = {
   vid: string;
   ipHash: string;
   occurredAt?: string | null;
-  contact?: string | null;
   status?: Status;
   source?: Source;
 };
@@ -59,13 +58,12 @@ export function createEntry(db: DatabaseSync, input: NewEntry): Entry {
   const status: Status = input.status ?? "pending";
   const source: Source = input.source ?? "web";
   const occurredAt = input.occurredAt && /^\d{4}-\d{2}$/.test(input.occurredAt) ? input.occurredAt : null;
-  const contact = input.contact?.trim() ? input.contact.trim().slice(0, 200) : null;
   const bodyHash = hashBody(body);
   db.prepare(
-    `INSERT INTO entries (id, subject_id, list, category, body, body_hash, occurred_at, evidence_count, contact,
+    `INSERT INTO entries (id, subject_id, list, category, body, body_hash, occurred_at, evidence_count,
        vid, ip_hash, status, source, verified, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, 0, ?)`,
-  ).run(id, subject.id, input.list, input.category, body, bodyHash, occurredAt, contact, input.vid, input.ipHash, status, source, now());
+     VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, 0, ?)`,
+  ).run(id, subject.id, input.list, input.category, body, bodyHash, occurredAt, input.vid, input.ipHash, status, source, now());
   appendEvent(db, "entry.created", id, {
     subjectId: subject.id,
     list: input.list,

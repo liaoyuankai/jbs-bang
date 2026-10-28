@@ -234,16 +234,6 @@ export function SubmitForm({
         {fileError && <p className="mt-1 text-sm text-red-700">{fileError}</p>}
       </fieldset>
 
-      <fieldset>
-        <legend className="text-sm font-semibold">5. 你的联系方式（可不填）</legend>
-        <input
-          name="contact"
-          maxLength={200}
-          placeholder="仅审核可见，用于核实；不会公开"
-          className="mt-2 w-full rounded border border-stone-300 bg-white px-3 py-2 text-sm"
-        />
-      </fieldset>
-
       {state.error && <p className="rounded bg-red-50 px-3 py-2 text-sm text-red-700">{state.error}</p>}
 
       <button
