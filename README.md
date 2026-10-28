@@ -59,6 +59,14 @@ npm run import
 
 全部直接公开。重复运行不会重复插入。
 
+又拿到同一张表的另一份快照（内容可能已被删改）时，只补没导过的文字：
+
+```bash
+python -P scripts/xlsx_to_json.py "快照.xlsx" /tmp/snap.json
+python -X utf8 scripts/filter_new.py /tmp/snap.json data/import.json data/import-快照日期.json
+npm run import -- data/import-快照日期.json
+```
+
 ## 五、本地开发
 
 ```bash
