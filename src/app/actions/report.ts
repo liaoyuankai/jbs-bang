@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { errorMessage, type ActionState } from "@/lib/action-state";
 import { getDb } from "@/lib/db";
+import { isMaintenance, MAINTENANCE_MESSAGE } from "@/lib/maintenance";
 import { checkRate, RATE_MESSAGES } from "@/lib/ratelimit";
 import { isReportTargetKind } from "@/lib/reports";
 import { createReport, validateReport } from "@/lib/repo/reports";
@@ -14,6 +15,7 @@ function str(fd: FormData, key: string): string {
 }
 
 export async function reportAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  if (isMaintenance()) return { error: MAINTENANCE_MESSAGE };
   try {
     const targetKind = str(formData, "targetKind");
     const targetId = str(formData, "targetId");

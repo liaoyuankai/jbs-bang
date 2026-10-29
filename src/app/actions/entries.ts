@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { errorMessage, type ActionState } from "@/lib/action-state";
 import { config } from "@/lib/config";
 import { getDb } from "@/lib/db";
+import { isMaintenance, MAINTENANCE_MESSAGE } from "@/lib/maintenance";
 import { checkRate, RATE_MESSAGES } from "@/lib/ratelimit";
 import { BODY_MAX, BODY_MIN, createEntry, hasRecentEntry, REPEAT_WINDOW_DAYS, setEvidenceCount } from "@/lib/repo/entries";
 import { findOrCreateSubject, getSubject } from "@/lib/repo/subjects";
@@ -17,6 +18,7 @@ function str(fd: FormData, key: string): string {
 }
 
 export async function createEntryAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  if (isMaintenance()) return { error: MAINTENANCE_MESSAGE };
   let entryId: string;
   try {
     // 1. validate everything that needs no database, so a typo costs nothing

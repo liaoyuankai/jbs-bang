@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { errorMessage, type ActionState } from "@/lib/action-state";
 import { getDb } from "@/lib/db";
+import { isMaintenance, MAINTENANCE_MESSAGE } from "@/lib/maintenance";
 import { checkRate, RATE_MESSAGES } from "@/lib/ratelimit";
 import { createComment } from "@/lib/repo/comments";
 import { getEntry } from "@/lib/repo/entries";
@@ -15,6 +16,7 @@ function str(fd: FormData, key: string): string {
 }
 
 async function submit(kind: "comment" | "response", formData: FormData): Promise<ActionState> {
+  if (isMaintenance()) return { error: MAINTENANCE_MESSAGE };
   try {
     const body = str(formData, "body");
     const entryId = str(formData, "entryId") || null;

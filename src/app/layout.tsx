@@ -7,6 +7,7 @@ import { NavProgress } from "@/components/NavProgress";
 import { SubmitFab } from "@/components/SubmitFab";
 import { WelcomeNotice } from "@/components/WelcomeNotice";
 import { config } from "@/lib/config";
+import { isMaintenance } from "@/lib/maintenance";
 
 export const metadata: Metadata = {
   title: config.siteName,
@@ -23,6 +24,7 @@ export const viewport: Viewport = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const maintenance = isMaintenance();
   return (
     <html lang="zh-CN">
       <body className="min-h-screen">
@@ -32,9 +34,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Nav />
         <main className="mx-auto max-w-2xl px-4 py-4 sm:py-5">{children}</main>
         <Footer />
-        <SubmitFab />
+        {!maintenance && <SubmitFab />}
         <BackTrap />
-        <WelcomeNotice />
+        {maintenance && <WelcomeNotice />}
       </body>
     </html>
   );

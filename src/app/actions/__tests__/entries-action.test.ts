@@ -16,6 +16,7 @@ vi.mock("next/headers", () => ({
 
 import { createEntryAction } from "@/app/actions/entries";
 import { getDb } from "@/lib/db";
+import { MAINTENANCE_MESSAGE } from "@/lib/maintenance";
 import { listEntries } from "@/lib/repo/entries";
 import { PII_MASK } from "@/lib/scrub";
 
@@ -61,6 +62,17 @@ async function submit(fd: FormData) {
 }
 
 describe("createEntryAction", () => {
+  it("refuses every submission during maintenance and stores nothing", async () => {
+    delete process.env.MAINTENANCE;
+    try {
+      const r = await submit(form());
+      expect(r).toEqual({ kind: "state", res: { error: MAINTENANCE_MESSAGE } });
+      expect(listEntries(getDb(), { city: "西安" })).toHaveLength(0);
+    } finally {
+      process.env.MAINTENANCE = "0";
+    }
+  });
+
   it("publishes a scrubbed entry for a new subject at once and redirects", async () => {
     const r = await submit(form());
     expect(r.kind).toBe("redirect");

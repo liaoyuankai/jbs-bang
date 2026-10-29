@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getDb } from "@/lib/db";
+import { isMaintenance, MAINTENANCE_MESSAGE } from "@/lib/maintenance";
 import { checkRate, RATE_MESSAGES } from "@/lib/ratelimit";
 import { castSiteVote, getSiteVote, isSiteVoteChoice, siteVoteTally, type SiteVoteChoice, type SiteVoteTally } from "@/lib/repo/site-votes";
 import { getClientIp, getOrSetVid, ipHash, readVid } from "@/lib/visitor";
@@ -16,6 +17,7 @@ export async function siteVoteStatusAction(): Promise<SiteVoteState> {
 
 export async function siteVoteAction(choice: SiteVoteChoice): Promise<SiteVoteState> {
   const db = getDb();
+  if (isMaintenance()) return { ...siteVoteTally(db), mine: null, error: MAINTENANCE_MESSAGE };
   if (!isSiteVoteChoice(choice)) return { ...siteVoteTally(db), mine: null, error: "无效的选择" };
   const vid = await getOrSetVid();
   const ip = ipHash(await getClientIp());
